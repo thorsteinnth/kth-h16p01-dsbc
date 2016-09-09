@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([ping/1]).
+-export([ping/2]).
 -export([pong/0]).
 
 %% Try to define a process on one machine "ping",
@@ -23,40 +23,38 @@
 %% it can use the identifier to communicate with it and does not
 %% have to know if it is a local or remote process.
 
-ping(FOREIGNPROCADDR) ->
-  % Send my own PID to FOREIGNPROCADDR
-  FOREIGNPROCADDR ! self();
+%%%%%%%%%%%%%%%%%%%%%%%
+
+% c(ping).
+
+% Start node 1:
+% erl -name node1@192.168.1.8 -setcookie secret
+% Start node 2:
+% erl -name node2@192.168.1.8 -setcookie secret
+
+% On pong node:
+% P = spawn(ping, pong, []).
+% register(pongproc, P).
+
+% On ping node:
+% ping:ping('pongproc', 'node2@192.168.1.8').
+
+%%%%%%%%%%%%%%%%%%%%%%%
+
+ping(FOREIGNNODE_PROCNAME, FOREIGNNODE) ->
+  % Send my own PID to the process FOREIGNNODE_PROCNAME on the foreign node FOREIGNNODE
+  {FOREIGNNODE_PROCNAME, FOREIGNNODE} ! self(),
   % Wait for reply
   receive
-    % Expecting a remote process PID as the message.
-    % Send a reply to that PID.
-    FOREIGNPROCPID -> io:format("MESSAGE RECEIVED: ~s~n", [FOREIGNPROCPID])
+    % Expecting a pong back
+    X -> io:format("MESSAGE RECEIVED IN PING NODE: ~s~n", [X])
   end.
 
 pong() ->
   receive
     % Expecting a remote process PID as the message.
-    % Send a reply to that PID.
-    FOREIGNPROCPID -> io:format("MESSAGE RECEIVED: ~s~n", [FOREIGNPROCPID])
+    % Send a pong (as a reply) to that PID.
+    FOREIGNPROCPID ->
+      io:format("MESSAGE RECEIVED IN PONG NODE, WILL SEND PONG REPLY~n", []),
+      FOREIGNPROCPID ! "PONG"
   end.
-
-
-
-%ping(ISORIGINATOR, FOREIGNPROCADDR) ->
- % if
-  %  ISORIGINATOR == 1 ->
-      % Am originator.
-      % Should send my PID to FOREIGNPROCADDR
-      % and then wait for a reply.
-   %   FOREIGNPROCADDR ! "self()";
-    %true ->
-      % Not originator.
-      % Will receive a message containing a PID.
-      % Should send a reply to that PID.
-     % receive
-      %  RECVPID -> io:format("RECVPID RECEIVED: ~s~n", [RECVPID])
-      %end
-  %end.
-
-
-%% Stupid að vera að setja þetta í sama fallið. Ætti að búa til tvö föll, ping og pong
