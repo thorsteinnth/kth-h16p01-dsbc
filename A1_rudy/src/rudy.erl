@@ -27,7 +27,7 @@ init(Port) ->
     case gen_tcp:listen(Port, Opt) of % Open listening socket
       {ok, Listen} -> % {ok, listensocket}
         handler(Listen), % FOR ME TO FILL IN
-        gen_tcp:close(Listen),
+        gen_tcp:close(Listen), % Close listening socket
         ok;
       {error, Error} -> % {error, reason}
         error
@@ -48,7 +48,7 @@ handler(Listen) ->
 % Will read the request from the client connection and parse it. It will then parse the request using
 % your http parser and pass the request to reply/1. The reply is then sent back to the client.
 request(Client) ->
-  Recv = gen_tcp:recv(Client, 0), % Read from client (in our case return it as string), 0: read as much as possible
+  Recv = gen_tcp:recv(Client, 0), % Read from client (as string), 0: read as much as possible
   case Recv of
     {ok, Str} ->  % {ok, Packet}
       Request = http:parse_request(Str), % FOR ME TO FILL IN
