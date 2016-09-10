@@ -12,6 +12,7 @@
 %% API
 -export([parse_request/1]).
 -export([ok/1]).
+-export([get/1]).
 
 parse_request(R0) ->
   {Request, R1} = request_line(R0),

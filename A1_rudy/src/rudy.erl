@@ -70,6 +70,7 @@ request(Client) ->
 % reply(Request):
 % This is where we decide what to reply, how to turn the reply into a well formed HTTP reply
 reply({{get, URI, _}, _, _}) ->
+  timer:sleep(40),  % Insert small delay to simulate file handling, server side scripting etc.
   http:ok("THIS IS THE RESPONSE").
 
 
