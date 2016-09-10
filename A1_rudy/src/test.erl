@@ -33,7 +33,8 @@ request(Host, Port) ->
   gen_tcp:send(Server, http:get("foo")),
   Recv = gen_tcp:recv(Server, 0),
   case Recv of
-    {ok, _} ->
+    {ok, Str} ->
+      %io:format("RESPONSE FROM SERVER: ~s~n", [Str]),
       ok;
     {error, Error} ->
       io:format("test: error: ~w~n", [Error])

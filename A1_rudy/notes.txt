@@ -1,2 +1,11 @@
 The http:get("foo") line in the test module, is it actually doing anything?
 Or isn't this just bypassing everything else in the module?
+
+NOPE:
+If I print out what the test program is getting from the server I get:
+
+HTTP/1.1 200 OK
+
+THIS IS THE RESPONSE
+
+So ... the get() function in the http module is just returning a formed GET XXX string that is then sent to the server.
