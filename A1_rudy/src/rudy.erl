@@ -23,7 +23,7 @@ start(Port) ->
   register(rudy, spawn(fun() -> init(Port) end)).
 
 stop() ->
-  exit(whereis(rudy), "time to die").
+  exit(whereis(rudy), "time to die"). % whereis() returns process identifier or port identifier
 
 % init(Port):
 % The procedure that will initialize the server, takes a port number (for example 8080),
