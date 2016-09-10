@@ -10,13 +10,20 @@
 -author("tts").
 
 %% API
--export([init/1]).
+%-export([init/1]). % Use start and stop instead
+-export([start/1, stop/0]).
 
 % c(rudy).
-% rudy:init(8080).
+% rudy:start(8080). and then rudy:stop().
 % In browser, request: http://localhost:8080/foo
 
 % NOTE: A socket that a server listens to is not the same thing as the socket later user for communication
+
+start(Port) ->
+  register(rudy, spawn(fun() -> init(Port) end)).
+
+stop() ->
+  exit(whereis(rudy), "time to die").
 
 % init(Port):
 % The procedure that will initialize the server, takes a port number (for example 8080),
@@ -39,7 +46,8 @@ init(Port) ->
 handler(Listen) ->
   case gen_tcp:accept(Listen) of  % Accept an incoming request. If successful we have a communication channel w client.
     {ok, Client} -> % {ok, Socket} ... i.e. the socket used for communication with the client
-      request(Client);  % FOR ME TO FILL IN
+      request(Client),  % FOR ME TO FILL IN
+      handler(Listen);  % 2.2 - recursive call to handle the next request
     {error, Error} -> % {error, Reason}
       error
   end.
@@ -57,7 +65,7 @@ request(Client) ->
     {error, Error} -> % {error, Reason}
       io:format("rudy: error: ~w~n", [Error])
   end,
-  gen_tcp:close(Client).  % Close connection and listening socket
+  gen_tcp:close(Client).  % Close connection to client
 
 % reply(Request):
 % This is where we decide what to reply, how to turn the reply into a well formed HTTP reply
