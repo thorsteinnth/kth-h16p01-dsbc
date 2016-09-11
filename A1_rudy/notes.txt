@@ -9,3 +9,6 @@ HTTP/1.1 200 OK
 THIS IS THE RESPONSE
 
 So ... the get() function in the http module is just returning a formed GET XXX string that is then sent to the server.
+
+Thread pool:
+https://stackoverflow.com/questions/32416651/simulation-of-thread-pool-for-a-web-server-implemented-by-erlang-doesnt-work
