@@ -110,9 +110,9 @@ poolManager(PoolSize) ->
 % Recursive function to handle messages sent to the poolManager process.
 poolManager(PoolSize, PoolPID) ->
   receive
-    { spawn, Argument } ->
+    { spawn, Client } ->
       io:format("[~p]rudy:poolManager/2: Requesting spawn~n", [self()]),
-      PoolPID ! { spawn, Argument, self() },
+      PoolPID ! { spawn, Client, self() },
       poolManager(PoolSize, PoolPID);
     accepted ->
       io:format("[~p]rudy:poolManager/2: Spawn request ACCEPTED~n", [self()]),
@@ -141,13 +141,13 @@ pool(CurrentSize, MaxSize) ->
     finished ->
       % A worker process from the pool is declaring itself finished, reduce currentSize by one.
       pool(CurrentSize - 1, MaxSize);
-    { spawn, Argument, RequestingPID } when CurrentSize < MaxSize ->
+    { spawn, Client, RequestingPID } when CurrentSize < MaxSize ->
       % Spawn request received. There is room in the process pool so we spawn a new process and send a confirmation
       % to the requesting process.
-      spawnRequestWorker(Argument, self()),
+      spawnRequestWorker(Client, self()),
       RequestingPID ! accepted,
       pool(CurrentSize + 1, MaxSize);
-    { spawn, Argument, RequestingPID } ->
+    { spawn, Client, RequestingPID } ->
       % Spawn request received. There is no room left in the pool so we deny the request and send a 'rejected'
       % message to the requesting process.
       RequestingPID ! rejected,
