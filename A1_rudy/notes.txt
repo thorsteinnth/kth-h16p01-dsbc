@@ -10,5 +10,12 @@ THIS IS THE RESPONSE
 
 So ... the get() function in the http module is just returning a formed GET XXX string that is then sent to the server.
 
+Going further:
+Bonus points:
+Implement at least one of the improvements.
+
+1. Increasing throughput
+Concurrently handle requests -> multithreading
+
 Thread pool:
 https://stackoverflow.com/questions/32416651/simulation-of-thread-pool-for-a-web-server-implemented-by-erlang-doesnt-work

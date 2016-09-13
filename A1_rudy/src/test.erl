@@ -12,6 +12,8 @@
 %% API
 -export([bench/2]).
 
+% test:bench(localhost, 8080).
+
 bench(Host, Port) ->
   Start = erlang:system_time(micro_seconds),
   run(100, Host, Port),
