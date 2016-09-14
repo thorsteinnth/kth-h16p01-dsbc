@@ -13,47 +13,44 @@
 % http://stackoverflow.com/a/6263459
 
 %% API
-%-export([init/1]). % Use start and stop instead
--export([start/1, stop/0]).
+-export([start/2, stop/0]).
 
 % c(rudy_concurrent).
-% rudy_concurrent:start(8080). and then rudy_concurrent:stop().
+% rudy_concurrent:start(8080, 10). and then rudy_concurrent:stop().
 % http http://localhost:8080/foo
 
 % NOTE: A socket that a server listens to is not the same thing as the socket later user for communication
 
-start(Port) ->
-  register(rudy_concurrent, spawn(fun() -> init(Port) end)).
+start(Port, PoolSize) ->
+  register(rudy_concurrent, spawn(fun() -> init(Port, PoolSize) end)).
 
 stop() ->
   exit(whereis(rudy_concurrent), "time to die"). % whereis() returns process identifier or port identifier
 
 % init(Port):
+% Port: Port to run on
+% PoolSize: Size of process pool, maximum number of concurrent processes.
 % The procedure that will initialize the server, takes a port number (for example 8080),
 % opens a listening socket and passes the socket to handler/1. Once the request
 % has been handled the socket will be closed.
-init(Port) ->
+init(Port, PoolSize) ->
   Opt = [list, {active, false}, {reuseaddr, true}],
   case gen_tcp:listen(Port, Opt) of % Open listening socket
     {ok, Listen} -> % {ok, listensocket}
-
       % We have a listen socket
-
       % Spawn poolManager process
-      PoolManagerPID = spawn(fun() -> poolManager(1) end),
-
+      PoolManagerPID = spawn(fun() -> poolManager(PoolSize) end),
       % Start handling the listen socket
       handler(Listen, PoolManagerPID),
-
       % Close listening socket
       % TODO Figure out a good way to take the server down. We actually never reach here since the handler() call is
       % recursive and waits for new clients forever. Our current way of taking the server down is to just kill the
       % server.
-      io:format("[~p]rudy:init: closing listening socket~n", [self()]),
+      io:format("[~p]rudy:init/2: closing listening socket~n", [self()]),
       gen_tcp:close(Listen), % Close listening socket
       ok;
     {error, Error} -> % {error, reason}
-      io:format("[~p]rudy:init: error: ~w~n", [self(), Error]),
+      io:format("[~p]rudy:init/2: error: ~w~n", [self(), Error]),
       error
   end.
 
@@ -63,16 +60,13 @@ init(Port) ->
 handler(Listen, PoolManagerPID) ->
   case gen_tcp:accept(Listen) of  % Accept an incoming request. If successful we have a communication channel w client.
     {ok, Client} -> % {ok, Socket} ... i.e. the socket used for communication with the client
-
       % We have a communication connection with a client
-
       % Spawn a worker to handle the client connection
       PoolManagerPID ! { spawn, Client },
-
       % Recursive call to handle the next request from a client
       handler(Listen, PoolManagerPID);
     {error, Error} -> % {error, Reason}
-      io:format("[~p]rudy:handler: error: ~w~n", [self(), Error]),
+      io:format("[~p]rudy:handler/2: error: ~w~n", [self(), Error]),
       error
   end.
 
@@ -88,23 +82,25 @@ request(Client, CreatorPID) ->
       Response = reply(Request),
       gen_tcp:send(Client, Response); % Send reply to client (in our case in form of string)
     {error, Error} -> % {error, Reason}
-      io:format("[~p]rudy:request: error: ~w~n", [self(), Error])
+      io:format("[~p]rudy:request/2: error: ~w~n", [self(), Error])
   end,
-  io:format("[~p]rudy:request: Finished, will notify creator process and close client connection~n", [self()]),
+  io:format("[~p]rudy:request/2: Finished, will notify creator process and close client connection~n", [self()]),
+  % Notify creator process that we are finished
   CreatorPID ! finished,
-  gen_tcp:close(Client).  % Close connection to client
+  % Close connection to client
+  gen_tcp:close(Client).
 
 % reply(Request):
 % This is where we decide what to reply, how to turn the reply into a well formed HTTP reply
 reply({{get, URI, _}, _, _}) ->
-  timer:sleep(20000),  % Insert small delay to simulate file handling, server side scripting etc.
+  timer:sleep(40),  % Insert small delay to simulate file handling, server side scripting etc.
   http:ok("THIS IS THE RESPONSE").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Process pool
 
 % poolManager(PoolSize)
-% Initialize a PoolManager with a process pool with max number of processes Size.
+% Initialize a PoolManager with a process pool with max number of processes PoolSize.
 poolManager(PoolSize) ->
   MyPID = self(),
   P = spawn(fun() -> pool(PoolSize, MyPID) end),
@@ -115,9 +111,7 @@ poolManager(PoolSize) ->
 % previously rejected clients
 % Recursive function to handle messages sent to the poolManager process.
 poolManager(PoolSize, PoolPID, Queue) ->
-
   poolManagerPrintQueue(Queue),
-
   receive
     { spawn, Client } ->
       io:format("[~p]rudy:poolManager/3: Requesting spawn for client~p~n", [self(), Client]),
@@ -133,7 +127,7 @@ poolManager(PoolSize, PoolPID, Queue) ->
       poolManager(PoolSize, PoolPID, NewQueue);
     newVacancy ->
       % There is a spot available in the process pool, let's request a worker for one of the clients in the queue (if any).
-      io:format("[~p]rudy:poolManager/2: We have a new vacancy in the pool. Request worker for client in queue (if any).~n", [self()]),
+      io:format("[~p]rudy:poolManager/3: We have a new vacancy in the pool. Request worker for client in queue (if any).~n", [self()]),
       NewQueue = poolManagerRequestWorkerForClientInQueue(PoolPID, Queue),
       poolManager(PoolSize, PoolPID, NewQueue)
   end.
