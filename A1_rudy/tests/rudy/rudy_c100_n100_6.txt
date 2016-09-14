@@ -1,0 +1,23 @@
+[Wed Sep 14 2016 21:19:24 GMT+0200 (CEST)] INFO Requests: 0 (0%), requests per second: 0, mean latency: 0 ms
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO 
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Target URL:          http://localhost:8080/foo
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Max requests:        100
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Concurrency level:   100
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Agent:               none
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO 
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Completed requests:  100
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Total errors:        1
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Total time:          4.377384714 s
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Requests per second: 23
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Total time:          4,377384714 s
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO 
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO Percentage of the requests served within a certain time
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO   50%      262 ms
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO   90%      267 ms
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO   95%      269 ms
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO   99%      289 ms
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO  100%      289 ms (longest request)
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO 
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO  100%      289 ms (longest request)
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO 
+[Wed Sep 14 2016 21:19:28 GMT+0200 (CEST)] INFO    -1:   1 errors
