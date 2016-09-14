@@ -84,7 +84,7 @@ request(Client, CreatorPID) ->
     {error, Error} -> % {error, Reason}
       io:format("[~p]rudy:request/2: error: ~w~n", [self(), Error])
   end,
-  io:format("[~p]rudy:request/2: Finished, will notify creator process and close client connection~n", [self()]),
+  % io:format("[~p]rudy:request/2: Finished, will notify creator process and close client connection~n", [self()]),
   % Notify creator process that we are finished
   CreatorPID ! finished,
   % Close connection to client
@@ -114,20 +114,20 @@ poolManager(PoolSize, PoolPID, Queue) ->
   poolManagerPrintQueue(Queue),
   receive
     { spawn, Client } ->
-      io:format("[~p]rudy:poolManager/3: Requesting spawn for client~p~n", [self(), Client]),
+      %io:format("[~p]rudy:poolManager/3: Requesting spawn for client~p~n", [self(), Client]),
       PoolPID ! { spawn, Client },
       poolManager(PoolSize, PoolPID, Queue);
     { accepted, Client } ->
-      io:format("[~p]rudy:poolManager/3: Spawn request ACCEPTED for client~p~n", [self(), Client]),
+      %io:format("[~p]rudy:poolManager/3: Spawn request ACCEPTED for client~p~n", [self(), Client]),
       poolManager(PoolSize, PoolPID, Queue);
     { rejected, Client } ->
-      io:format("[~p]rudy:poolManager/3: Spawn request REJECTED for client~p~n", [self(), Client]),
+      %io:format("[~p]rudy:poolManager/3: Spawn request REJECTED for client~p~n", [self(), Client]),
       % Add client to the queue of rejected clients
       NewQueue = lists:append(Queue, [Client]),
       poolManager(PoolSize, PoolPID, NewQueue);
     newVacancy ->
       % There is a spot available in the process pool, let's request a worker for one of the clients in the queue (if any).
-      io:format("[~p]rudy:poolManager/3: We have a new vacancy in the pool. Request worker for client in queue (if any).~n", [self()]),
+      %io:format("[~p]rudy:poolManager/3: We have a new vacancy in the pool. Request worker for client in queue (if any).~n", [self()]),
       NewQueue = poolManagerRequestWorkerForClientInQueue(PoolPID, Queue),
       poolManager(PoolSize, PoolPID, NewQueue)
   end.
@@ -139,11 +139,11 @@ poolManager(PoolSize, PoolPID, Queue) ->
 % return the new queue (without the client that we were requesting a worker for).
 poolManagerRequestWorkerForClientInQueue(PoolPID, []) ->
   % Queue is empty, do nothing
-  io:format("[~p]rudy:poolManagerRequestSpawnForClientInQueue/2: We have an empty queue.~n", [self()]),
+  %io:format("[~p]rudy:poolManagerRequestSpawnForClientInQueue/2: We have an empty queue.~n", [self()]),
   [];
 poolManagerRequestWorkerForClientInQueue(PoolPID, Queue) ->
   Client = lists:nth(1, Queue),
-  io:format("[~p]rudy:poolManagerRequestSpawnForClientInQueue/2: Requesting spawn for client ~p~n", [self(), Client]),
+  %io:format("[~p]rudy:poolManagerRequestSpawnForClientInQueue/2: Requesting spawn for client ~p~n", [self(), Client]),
   PoolPID ! { spawn, Client },
   % Let's remove the client we are requesting a worker for from the clients in the queue
   NewQueue = lists:delete(Client, Queue),
@@ -155,7 +155,7 @@ poolManagerPrintQueue([]) ->
   % Empty queue, do nothing.
   ok;
 poolManagerPrintQueue(Queue) ->
-  io:format("[~p]rudy:poolManagerPrintQueue/1: Queue: ~p~n", [self(), Queue]),
+  %io:format("[~p]rudy:poolManagerPrintQueue/1: Queue: ~p~n", [self(), Queue]),
   ok.
 
 % pool(Size, PoolManagerPID)
@@ -172,7 +172,7 @@ pool(Size, PoolManagerPID) ->
 % pool(CurrentSize, MaxSize)
 % Recursive function to handle messages sent to the pool.
 pool(CurrentSize, MaxSize, PoolManagerPID) ->
-  io:format("[~p]rudy:pool/2:[CurrentSize, MaxSize] = [~p, ~p]~n", [self(), CurrentSize, MaxSize]),
+  %io:format("[~p]rudy:pool/2:[CurrentSize, MaxSize] = [~p, ~p]~n", [self(), CurrentSize, MaxSize]),
   receive
     finished ->
       % A worker process from the pool is declaring itself finished, reduce currentSize by one and notify PoolManager.
@@ -194,7 +194,7 @@ pool(CurrentSize, MaxSize, PoolManagerPID) ->
 % spawnRequestWorker(Client, RequesterPID)
 % Spawn a new request worker to handle Client. RequesterPID is the PID of the process that is requesting the spawn.
 spawnRequestWorker(Client, RequesterPID) ->
-  P = spawn(fun() -> request(Client, RequesterPID) end),
-  io:format("[~p]rudy:spawnRequestWorker/2: Spawned worker with PID ~p for client ~p~n", [self(), P, Client]).
+  P = spawn(fun() -> request(Client, RequesterPID) end).
+  %io:format("[~p]rudy:spawnRequestWorker/2: Spawned worker with PID ~p for client ~p~n", [self(), P, Client]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
