@@ -17,5 +17,11 @@ Implement at least one of the improvements.
 1. Increasing throughput
 Concurrently handle requests -> multithreading
 
-Thread pool:
-https://stackoverflow.com/questions/32416651/simulation-of-thread-pool-for-a-web-server-implemented-by-erlang-doesnt-work
+Made a thread pool which assigns workers from a pool and queues work if the pool is full.
+The test function is sequential? Doesn't make a new request until the first one finishes.
+Using loadtest (https://www.npmjs.com/package/loadtest) instead for all tests.
+
+TESTS
+
+loadtest -c 100 -n 100  http://localhost:8080/foo
+(100 concurrent requests)

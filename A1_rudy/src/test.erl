@@ -13,6 +13,9 @@
 -export([bench/2]).
 
 % test:bench(localhost, 8080).
+% This test isn't concurrent (passive sockets, doesn't make next request until the first one finishes).
+% Using this instead:
+% https://www.npmjs.com/package/loadtest
 
 bench(Host, Port) ->
   Start = erlang:system_time(micro_seconds),
