@@ -9,6 +9,9 @@
 -module(rudy_concurrent).
 -author("tts").
 
+% Process pool inspiration taken from:
+% http://stackoverflow.com/a/6263459
+
 %% API
 %-export([init/1]). % Use start and stop instead
 -export([start/1, stop/0]).
@@ -37,7 +40,7 @@ init(Port) ->
       % We have a listen socket
 
       % Spawn poolManager process
-      PoolManagerPID = spawn(fun() -> poolManager(3) end),
+      PoolManagerPID = spawn(fun() -> poolManager(1) end),
 
       % Start handling the listen socket
       handler(Listen, PoolManagerPID),
@@ -103,61 +106,101 @@ reply({{get, URI, _}, _, _}) ->
 % poolManager(PoolSize)
 % Initialize a PoolManager with a process pool with max number of processes Size.
 poolManager(PoolSize) ->
-  P = spawn(fun() -> pool(PoolSize) end),
-  poolManager(PoolSize, P).
+  MyPID = self(),
+  P = spawn(fun() -> pool(PoolSize, MyPID) end),
+  poolManager(PoolSize, P, []).
 
-% poolManager(PoolSize, PoolPID)
+% poolManager(PoolSize, PoolPID, Queue)
+% PoolSize is the max number of processes in the pool, PoolPID is the PID of the pool process, Queue is a list of
+% previously rejected clients
 % Recursive function to handle messages sent to the poolManager process.
-poolManager(PoolSize, PoolPID) ->
+poolManager(PoolSize, PoolPID, Queue) ->
+
+  poolManagerPrintQueue(Queue),
+
   receive
     { spawn, Client } ->
-      io:format("[~p]rudy:poolManager/2: Requesting spawn~n", [self()]),
-      PoolPID ! { spawn, Client, self() },
-      poolManager(PoolSize, PoolPID);
-    accepted ->
-      io:format("[~p]rudy:poolManager/2: Spawn request ACCEPTED~n", [self()]),
-      poolManager(PoolSize, PoolPID);
-    rejected ->
-      io:format("[~p]rudy:poolManager/2: Spawn request REJECTED~n", [self()]),
-      poolManager(PoolSize, PoolPID)
+      io:format("[~p]rudy:poolManager/3: Requesting spawn for client~p~n", [self(), Client]),
+      PoolPID ! { spawn, Client },
+      poolManager(PoolSize, PoolPID, Queue);
+    { accepted, Client } ->
+      io:format("[~p]rudy:poolManager/3: Spawn request ACCEPTED for client~p~n", [self(), Client]),
+      poolManager(PoolSize, PoolPID, Queue);
+    { rejected, Client } ->
+      io:format("[~p]rudy:poolManager/3: Spawn request REJECTED for client~p~n", [self(), Client]),
+      % Add client to the queue of rejected clients
+      NewQueue = lists:append(Queue, [Client]),
+      poolManager(PoolSize, PoolPID, NewQueue);
+    newVacancy ->
+      % There is a spot available in the process pool, let's request a worker for one of the clients in the queue (if any).
+      io:format("[~p]rudy:poolManager/2: We have a new vacancy in the pool. Request worker for client in queue (if any).~n", [self()]),
+      NewQueue = poolManagerRequestWorkerForClientInQueue(PoolPID, Queue),
+      poolManager(PoolSize, PoolPID, NewQueue)
   end.
 
-% pool(Size)
-% Initialize a process pool with max number of processes Size.
+% poolManagerRequestSpawnForClientInQueue/2
+% Pattern matching function.
+% If queue is empty, do nothing and return empty list.
+% If queue not empty, request a worker for the first client in the queue, then remove the client from the queue and
+% return the new queue (without the client that we were requesting a worker for).
+poolManagerRequestWorkerForClientInQueue(PoolPID, []) ->
+  % Queue is empty, do nothing
+  io:format("[~p]rudy:poolManagerRequestSpawnForClientInQueue/2: We have an empty queue.~n", [self()]),
+  [];
+poolManagerRequestWorkerForClientInQueue(PoolPID, Queue) ->
+  Client = lists:nth(1, Queue),
+  io:format("[~p]rudy:poolManagerRequestSpawnForClientInQueue/2: Requesting spawn for client ~p~n", [self(), Client]),
+  PoolPID ! { spawn, Client },
+  % Let's remove the client we are requesting a worker for from the clients in the queue
+  NewQueue = lists:delete(Client, Queue),
+  NewQueue.
+
+% poolManagerPrintQueue/1
+% Pattern matching function. Don't print anything if queue empty, print elements in queue if not empty.
+poolManagerPrintQueue([]) ->
+  % Empty queue, do nothing.
+  ok;
+poolManagerPrintQueue(Queue) ->
+  io:format("[~p]rudy:poolManagerPrintQueue/1: Queue: ~p~n", [self(), Queue]),
+  ok.
+
+% pool(Size, PoolManagerPID)
+% Initialize a process pool with max number of processes Size. PoolManagerPID is the PID of the pool manager process.
 % NOTES:
 % When trap_exit is set to true, exit signals arriving to a process are converted to {'EXIT', From, Reason} messages,
 % which can be received as ordinary messages.
 % If trap_exit is set to false, the process exits if it receives an exit signal other than normal and the exit signal
 % is propagated to its linked processes. Application processes are normally not to trap exits.
-pool(Size) ->
+pool(Size, PoolManagerPID) ->
   process_flag(trap_exit, true),
-  pool(0, Size).
+  pool(0, Size, PoolManagerPID).
 
 % pool(CurrentSize, MaxSize)
 % Recursive function to handle messages sent to the pool.
-pool(CurrentSize, MaxSize) ->
+pool(CurrentSize, MaxSize, PoolManagerPID) ->
   io:format("[~p]rudy:pool/2:[CurrentSize, MaxSize] = [~p, ~p]~n", [self(), CurrentSize, MaxSize]),
   receive
     finished ->
-      % A worker process from the pool is declaring itself finished, reduce currentSize by one.
-      pool(CurrentSize - 1, MaxSize);
-    { spawn, Client, RequestingPID } when CurrentSize < MaxSize ->
-      % Spawn request received. There is room in the process pool so we spawn a new process and send a confirmation
-      % to the requesting process.
+      % A worker process from the pool is declaring itself finished, reduce currentSize by one and notify PoolManager.
+      PoolManagerPID ! newVacancy,
+      pool(CurrentSize - 1, MaxSize, PoolManagerPID);
+    { spawn, Client } when CurrentSize < MaxSize ->
+      % Spawn request received.
+      % There is room in the process pool so we spawn a new process and send a confirmation to the PoolManager.
       spawnRequestWorker(Client, self()),
-      RequestingPID ! accepted,
-      pool(CurrentSize + 1, MaxSize);
-    { spawn, Client, RequestingPID } ->
-      % Spawn request received. There is no room left in the pool so we deny the request and send a 'rejected'
-      % message to the requesting process.
-      RequestingPID ! rejected,
-      pool(CurrentSize, MaxSize)
+      PoolManagerPID ! { accepted, Client },
+      pool(CurrentSize + 1, MaxSize, PoolManagerPID);
+    { spawn, Client } ->
+      % Spawn request received.
+      % There is no room left in the pool so we deny the request and send a 'rejected' message to the PoolManager.
+      PoolManagerPID ! { rejected, Client },
+      pool(CurrentSize, MaxSize, PoolManagerPID)
   end.
 
 % spawnRequestWorker(Client, RequesterPID)
 % Spawn a new request worker to handle Client. RequesterPID is the PID of the process that is requesting the spawn.
 spawnRequestWorker(Client, RequesterPID) ->
   P = spawn(fun() -> request(Client, RequesterPID) end),
-  io:format("[~p]rudy:spawnRequestWorker: Spawned worker with PID ~p~n", [self(), P]).
+  io:format("[~p]rudy:spawnRequestWorker/2: Spawned worker with PID ~p for client ~p~n", [self(), P, Client]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
