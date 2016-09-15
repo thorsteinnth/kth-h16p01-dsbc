@@ -10,7 +10,8 @@
 -author("tts").
 
 %% API
--export([new/0, update/3, reachable/2, all_nodes/1, testUpdate/0]).
+-export([new/0, update/3, reachable/2, all_nodes/1,
+  testUpdate/0, testReachable/0]).
 
 % NOTES:
 % Directional map where you should easily be able to update the map and find nodes directly
@@ -35,7 +36,17 @@ update(Node, Links, Map) ->
 
 % Returns the list of nodes directly reachable from Node.
 reachable(Node, Map) ->
-  ok.
+  % Find Node in Map
+  % keyfind(Key, N, TupleList) -> Tuple | false
+  % Searches the list of tuples TupleList for a tuple whose Nth element compares equal to Key.
+  % Returns Tuple if such a tuple is found, otherwise false.
+  FoundTuple = lists:keyfind(Node, 1, Map),
+  if
+    FoundTuple == false -> [];
+    true ->
+      {_, ReachableDestinations} = FoundTuple,
+      ReachableDestinations
+  end.
 
 % Returns a list of all nodes in the map, also the ones without outgoing links.
 % So if berlin is is linked to london but london does not have any outgoing links (and thus no entry in the list),
@@ -63,5 +74,18 @@ testUpdate() ->
     true -> error
   end.
 
+testReachable() ->
+  Map1 = map:update(berlin, [london, paris], []),
+  Map2 = map:update(reykjavik, [stockholm, berlin, helsinki], Map1),
+  Result1 = map:reachable(reykjavik, Map2),
+  Result2 = map:reachable(berlin, Map2),
+  Result3 = map:reachable(fakecity, Map2),
+  io:format("map:testReachable/0: ~p~n", [Result1]),
+  io:format("map:testReachable/0: ~p~n", [Result2]),
+  io:format("map:testReachable/0: ~p~n", [Result3]),
+  ok.
+
 listCompare(List, List) -> true;
 listCompare(_, _) -> false.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
