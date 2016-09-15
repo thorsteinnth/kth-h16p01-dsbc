@@ -10,6 +10,10 @@ THIS IS THE RESPONSE
 
 So ... the get() function in the http module is just returning a formed GET XXX string that is then sent to the server.
 
+Note that the server is using passive sockets. Then we have to use recv to read data (blocking). We could use
+active sockets and then receive the data as messages from the socket.
+This would allow us to also receive control messages from a controlling process, to for instance kill the server.
+
 Going further:
 Bonus points:
 Implement at least one of the improvements.
