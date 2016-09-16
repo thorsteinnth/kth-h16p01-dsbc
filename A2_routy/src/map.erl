@@ -10,8 +10,7 @@
 -author("tts").
 
 %% API
--export([new/0, update/3, reachable/2, all_nodes/1,
-  testUpdate/0, testReachable/0]).
+-export([new/0, update/3, reachable/2, all_nodes/1]).
 
 % NOTES:
 % Directional map where you should easily be able to update the map and find nodes directly
@@ -52,14 +51,56 @@ reachable(Node, Map) ->
 % So if berlin is is linked to london but london does not have any outgoing links (and thus no entry in the list),
 % london should still be in the returned list.
 all_nodes(Map) ->
-  ok.
+  FlatMap = flattenMap(Map),
+  UniqueCities = getUniqueCitiesList(FlatMap),
+  UniqueCities.
 
-printMap([]) ->
-  io:format("[~p]map:printMap/1: []~n", [self()]),
-  ok;
-printMap(Map) ->
-  io:format("[~p]map:printMap/1: ~p~n", [self(), Map]),
-  ok.
+% Takes a list of tuples [{Node, [City1, City2, City3]}]
+% and returns a list of all elements [Node, City1, City2, City3]
+flattenMap(Map) ->
+  % foldl(Fun, Acc0, List) -> Acc1
+  % Calls Fun(Elem, AccIn) on successive elements A of List, starting with AccIn == Acc0.
+  % Fun/2 must return a new accumulator, which is passed to the next call.
+  % The function returns the final value of the accumulator. Acc0 is returned if the list is empty.
+  lists:foldl(
+    fun(Node, FlatList) ->
+      FlatNode = flattenNode(Node),
+      lists:append(FlatList, FlatNode)
+    end,
+    [],
+    Map
+  ).
+
+% Takes a flat list of elements (no nesting) and removes all duplicates.
+getUniqueCitiesList(FlatMap) ->
+  lists:foldl(
+    fun(FlatMapElement, UniqueList) ->
+      addIfUnique(FlatMapElement, UniqueList)
+    end,
+    [],
+    FlatMap
+  ).
+
+% flattenNode/2.
+% Takes a map node, which is of the form {Node, [list, of, reachable, cities]}
+% Return list of all the cities in the map node [Node, list, of, reachable, cities]
+flattenNode({Node, ReachableNodes}) ->
+  lists:append([Node], ReachableNodes).
+
+% Add X to UniqueList if UniqueList doesn't already contain X.
+% NOTE: No list nesting allowed. Only lists of elements allowed, not lists of tuples.
+% X is an element (single element, not a list). UniqueList is a flat list of elements, no list nesting allowed.
+addIfUnique(X, UniqueList) ->
+  % NOTE: Using lists:member instead of keyfind because we are working with elements, not tuples
+  AlreadyPresent = lists:member(X, UniqueList),
+  if
+    AlreadyPresent == false ->
+      % UniqueList does not contain X, let's add it
+      lists:append(UniqueList, [X]);
+    true ->
+      % UniqueList already contains node, do nothing
+    UniqueList
+  end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TESTS
@@ -85,7 +126,14 @@ testReachable() ->
   io:format("map:testReachable/0: ~p~n", [Result3]),
   ok.
 
+testAllNodes() ->
+  io:format("Result should be [paris,london,berlin]~n", []),
+  map:all_nodes([{berlin,[london,paris]}]).
+
 listCompare(List, List) -> true;
 listCompare(_, _) -> false.
+
+printMap(Map) ->
+  io:format("[~p]map:printMap/1: ~p~n", [self(), Map]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
