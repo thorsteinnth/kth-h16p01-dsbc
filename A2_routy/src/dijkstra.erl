@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([entry/2, replace/4, update/4, iterate/3, table/2]).
+-export([table/2, route/2]).
 
 % Returns the length of the shortest path to the node or 0 if the node is not found.
 % Sorted is a sorted list of { node, lengthOfPathToNode, gateway }, sorted by increasing lengthOfPathToNode
@@ -98,7 +98,7 @@ updateReachableNodes([], N, Gateway, Sorted) ->
   Sorted;
 updateReachableNodes(ReachableNodes, N, Gateway, Sorted) ->
   [FirstReachableNode | RestOfReachableNodes] = ReachableNodes,
-  NewSorted = dijkstra:update(FirstReachableNode, N, Gateway, Sorted),
+  NewSorted = update(FirstReachableNode, N, Gateway, Sorted),
   updateReachableNodes(RestOfReachableNodes, N, Gateway, NewSorted).
 
 % Construct a routing table given the gateways and a map.
@@ -142,6 +142,21 @@ constructInitialSortedList(Gateways, MapNodes, SortedList) ->
       constructInitialSortedList(Gateways, RestOfMapNodes, NewSortedList)
   end.
 
+% Search the routing table and return the gateway suitable to route messages to a node.
+% If a gateway is found we should return {ok, Gateway} otherwise we return notfound.
+% Table is a routing table of the form e.g. [{berlin,madrid},{rome,paris},{madrid,madrid},{paris,paris}]
+% The table is of the form [{node,gateway}]
+% This could be a list of entries where each entry states which gateway to use to find the shortest path to
+% a node (if we have a path).
+route(Node, Table) ->
+  FoundTuple = lists:keyfind(Node, 1, Table),
+  if
+    FoundTuple == false -> notfound;
+    true ->
+      {_, Gateway} = FoundTuple,
+      {ok,Gateway}
+  end.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TESTS
 
@@ -163,13 +178,13 @@ testReplace() ->
   io:format("List4: ~p~n", [List4]).
 
 testUpdate() ->
-  Result1 = dijkstra:update(london, 2, amsterdam, []),
-  Result2 = dijkstra:update(london, 2, amsterdam, [{london, 2, paris}]),
-  Result3 = dijkstra:update(london, 1, stockholm, [{berlin, 2, paris}, {london, 3, paris}]),
+  Result1 = update(london, 2, amsterdam, []),
+  Result2 = update(london, 2, amsterdam, [{london, 2, paris}]),
+  Result3 = update(london, 1, stockholm, [{berlin, 2, paris}, {london, 3, paris}]),
   io:format("dijkstra:testUpdate/0:~n Result 1: ~p~n Result 2: ~p~n Result 3: ~p~n", [Result1, Result2, Result3]).
 
 testIterate() ->
-  dijkstra:iterate([{paris, 0, paris}, {berlin, inf, unknown}], [{paris, [berlin]}], []).
+  iterate([{paris, 0, paris}, {berlin, inf, unknown}], [{paris, [berlin]}], []).
 
 testConstructInitialSortedList() ->
   Map1 = map:update(berlin, [london, paris], []),
@@ -179,6 +194,10 @@ testConstructInitialSortedList() ->
   constructInitialSortedList(Gateways, Map3).
 
 testTable() ->
-  dijkstra:table([paris, madrid], [{madrid,[berlin]}, {paris, [rome,madrid]}]).
+  table([paris, madrid], [{madrid,[berlin]}, {paris, [rome,madrid]}]).
+
+testRoute() ->
+  Table = table([paris, madrid], [{madrid,[berlin]}, {paris, [rome,madrid]}]),
+  route(berlin, Table).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
