@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([entry/2, replace/4]).
+-export([entry/2, replace/4, update/4]).
 
 % Returns the length of the shortest path to the node or 0 if the node is not found.
 % Sorted is a sorted list of { node, lengthOfPathToNode, gateway }, sorted by increasing lengthOfPathToNode
@@ -44,6 +44,29 @@ replace(Node, N, Gateway, Sorted) ->
   SortedListWithNodeReplaced = lists:keysort(2, ListWithNodeReplaced),
   SortedListWithNodeReplaced.
 
+% Update the list Sorted given the information that Node can be reached in N hops using Gateway.
+% If no entry is found then no new entry is added.
+% Only if we have a better (shorter) path should we replace the existing entry.
+update(Node, N, Gateway, Sorted) ->
+  % Check if we have an entry for this node
+  CurrentShortestPathLength = entry(Node, Sorted),
+  if
+    CurrentShortestPathLength == 0
+    % We do not have an entry for this node
+      -> Sorted;
+    true ->
+      % We have an entry for this node
+      if
+        CurrentShortestPathLength > N ->
+          % The new path is shorter than the current one, let's replace the current one
+          UpdatedSorted = replace(Node, N, Gateway, Sorted),
+          UpdatedSorted;
+        true ->
+          % The new path is equally long or longer than the current one, change nothing
+          Sorted
+      end
+  end.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TESTS
 
@@ -63,5 +86,11 @@ testReplace() ->
   io:format("List3: ~p~n", [List3]),
   List4 = replace(berlin, 4, oslo, List3),
   io:format("List4: ~p~n", [List4]).
+
+testUpdate() ->
+  Result1 = dijkstra:update(london, 2, amsterdam, []),
+  Result2 = dijkstra:update(london, 2, amsterdam, [{london, 2, paris}]),
+  Result3 = dijkstra:update(london, 1, stockholm, [{berlin, 2, paris}, {london, 3, paris}]),
+  io:format("dijkstra:testUpdate/0:~n Result 1: ~p~n Result 2: ~p~n Result 3: ~p~n", [Result1, Result2, Result3]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
