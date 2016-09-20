@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([entry/2, replace/4, update/4]).
+-export([entry/2, replace/4, update/4, iterate/3]).
 
 % Returns the length of the shortest path to the node or 0 if the node is not found.
 % Sorted is a sorted list of { node, lengthOfPathToNode, gateway }, sorted by increasing lengthOfPathToNode
@@ -67,6 +67,40 @@ update(Node, N, Gateway, Sorted) ->
       end
   end.
 
+% Construct a table given a sorted list of nodes, a map and a table constructed so far.
+% iterate(Sorted, Map, Table)
+% If there are no more entries in the sorted list then we are done and the given routing table is complete.
+iterate([], Map, Table) ->
+  Table;
+% If the first entry is a dummy entry with an infinite path to a city we know that the rest of the sorted list
+% is also of infinite length and the given routing table is complete.
+% Otherwise, take the first entry in the sorted list, find the nodes in the map reachable from this entry and
+% for each of these nodes update the Sorted list. The entry that you took from the sorted list
+% is added to the routing table.
+iterate(Sorted, Map, Table) ->
+  [FirstElement | RestOfElements] = Sorted,
+  {FirstElementNode, FirstElementN, FirstElementGateway} = FirstElement,
+  if
+    FirstElementN == inf ->
+      % Have handled all destinations in the sorted list. All following destinations will also not be reachable.
+      Table;
+    true ->
+      % Find the nodes that are reachable from the first element in the sorted list
+      ReachableNodesFromFirstElement = map:reachable(FirstElementNode, Map),
+      % For each node that is reachable from the first element in the sorted list, update it in the sorted list
+      % (will only update it if we have a better path to it) (NOTE: Map contains cities that are directly connected)
+      NewSorted = updateReachableNodes(ReachableNodesFromFirstElement, FirstElementN + 1, FirstElementGateway, RestOfElements),
+      NewTable = lists:append(Table, [{ FirstElementNode, FirstElementGateway }]),
+      iterate(NewSorted, Map, NewTable)
+  end.
+
+updateReachableNodes([], N, Gateway, Sorted) ->
+  Sorted;
+updateReachableNodes(ReachableNodes, N, Gateway, Sorted) ->
+  [FirstReachableNode | RestOfReachableNodes] = ReachableNodes,
+  NewSorted = dijkstra:update(FirstReachableNode, N, Gateway, Sorted),
+  updateReachableNodes(RestOfReachableNodes, N, Gateway, NewSorted).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TESTS
 
@@ -92,5 +126,8 @@ testUpdate() ->
   Result2 = dijkstra:update(london, 2, amsterdam, [{london, 2, paris}]),
   Result3 = dijkstra:update(london, 1, stockholm, [{berlin, 2, paris}, {london, 3, paris}]),
   io:format("dijkstra:testUpdate/0:~n Result 1: ~p~n Result 2: ~p~n Result 3: ~p~n", [Result1, Result2, Result3]).
+
+testIterate() ->
+  dijkstra:iterate([{paris, 0, paris}, {berlin, inf, unknown}], [{paris, [berlin]}], []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
