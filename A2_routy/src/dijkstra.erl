@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([entry/2, replace/4, update/4, iterate/3]).
+-export([entry/2, replace/4, update/4, iterate/3, table/2]).
 
 % Returns the length of the shortest path to the node or 0 if the node is not found.
 % Sorted is a sorted list of { node, lengthOfPathToNode, gateway }, sorted by increasing lengthOfPathToNode
@@ -101,6 +101,38 @@ updateReachableNodes(ReachableNodes, N, Gateway, Sorted) ->
   NewSorted = dijkstra:update(FirstReachableNode, N, Gateway, Sorted),
   updateReachableNodes(RestOfReachableNodes, N, Gateway, NewSorted).
 
+% Construct a routing table given the gateways and a map.
+% Take a list of gateways and a map and produce a routing table with one entry per node in the map.
+% The table could be a list of entries where each entry states which gateway to use to find the shortest path
+% to a node (if we have a path).
+table(Gateways, Map) ->
+  constructInitialSortedList(Gateways, Map, []).
+
+% constructInitialSortedList(Gateways, Map, SortedList)
+% List the nodes of the map and construct an initial sorted list.
+% This list should have dummy entries for all nodes with the length set to infinity, inf, and the gateway
+% to unknown. The entries of the gateways should have length zero and gateway set to itself.
+% Map is a list of tuples [{Node, [City1, City2, City3]}]
+% SortedList is a sorted list of { node, lengthOfPathToNode, gateway }, sorted by increasing lengthOfPathToNode
+constructInitialSortedList(_, [], SortedList) ->
+  % Let's sort the list before we return it
+  ActuallySortedList = lists:keysort(2, SortedList),
+  ActuallySortedList;
+constructInitialSortedList(Gateways, Map, SortedList) ->
+  [FirstMapElement | RestOfMapElements] = Map,
+  {FirstMapElementNode, _} = FirstMapElement,
+  FirstMapElementNodeIsGateway = lists:member(FirstMapElementNode, Gateways),
+  if
+    FirstMapElementNodeIsGateway == true ->
+      % The node is a gateway, should have path length zero and the gateway set to itself
+      NewSortedList = lists:append([{FirstMapElementNode, 0, FirstMapElementNode}], SortedList),
+      constructInitialSortedList(Gateways, RestOfMapElements, NewSortedList);
+    true ->
+      % The node is not a gateway, should have length set to infinity and gateway to unknown
+      NewSortedList = lists:append([{FirstMapElementNode, inf, unknown}], SortedList),
+      constructInitialSortedList(Gateways, RestOfMapElements, NewSortedList)
+  end.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TESTS
 
@@ -129,5 +161,12 @@ testUpdate() ->
 
 testIterate() ->
   dijkstra:iterate([{paris, 0, paris}, {berlin, inf, unknown}], [{paris, [berlin]}], []).
+
+testConstructInitialSortedList() ->
+  Map1 = map:update(berlin, [london, paris], []),
+  Map2 = map:update(reykjavik, [stockholm, berlin, helsinki], Map1),
+  Map3 = map:update(stockholm, [nuuk], Map2),
+  Gateways = [reykjavik, nuuk],
+  constructInitialSortedList(Gateways, Map3, []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
