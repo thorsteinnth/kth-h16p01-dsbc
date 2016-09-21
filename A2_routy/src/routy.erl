@@ -10,7 +10,8 @@
 -author("tts").
 
 %% API
--export([start/2, stop/1, getProcessStatus/1, test/0, testSendMessageStockholmMalmo/0]).
+-export([start/2, stop/1,
+  getProcessStatus/1, test/0, testSetupSweden/1, testSendMessageStockholmMalmo/0]).
 
 start(Reg, Name) ->
   register(Reg, spawn(fun() -> init(Name) end)).
@@ -206,33 +207,34 @@ test() ->
   getProcessStatus(r4),
   ok.
 
-testSetupSweden() ->
+% NodeDescriptor e.g. sweden@192.168.1.8
+% routy:testSetupSweden('sweden@192.168.1.8').
+testSetupSweden(NodeDescriptor) ->
   % stockholm-lund-uppsala-malmo
   start(r1, stockholm),
   start(r2, lund),
   start(r3, uppsala),
   start(r4, malmo),
   % Connect r1 and r2
-  r1 ! {add, lund, {r2, 'sweden@192.168.1.8'}},
-  r2 ! {add, stockholm, {r1, 'sweden@192.168.1.8'}},
+  r1 ! {add, lund, {r2, NodeDescriptor}},
+  r2 ! {add, stockholm, {r1, NodeDescriptor}},
   % Connect r2 and r3
-  r2 ! {add, uppsala, {r3, 'sweden@192.168.1.8'}},
-  r3 ! {add, lund, {r2, 'sweden@192.168.1.8'}},
+  r2 ! {add, uppsala, {r3, NodeDescriptor}},
+  r3 ! {add, lund, {r2, NodeDescriptor}},
   % Connect r3 and r4
-  r3 ! {add, malmo, {r4, 'sweden@192.168.1.8'}},
-  r4 ! {add, uppsala, {r3, 'sweden@192.168.1.8'}},
+  r3 ! {add, malmo, {r4, NodeDescriptor}},
+  r4 ! {add, uppsala, {r3, NodeDescriptor}},
   % Let's now connect r1 to r3, should then skip r2
   % Connect r1 and r3
-  r1 ! {add, uppsala, {r3, 'sweden@192.168.1.8'}},
-  r3 ! {add, stockholm, {r1, 'sweden@192.168.1.8'}}.
+  r1 ! {add, uppsala, {r3, NodeDescriptor}},
+  r3 ! {add, stockholm, {r1, NodeDescriptor}},
   % Let's now connect r1 to r4, should then skip r2, r3
   % Connect r1 and r4
-  %r1 ! {add, malmo, {r4, 'sweden@192.168.1.8'}},
-  %r4 ! {add, stockholm, {r1, 'sweden@192.168.1.8'}}.
+  %r1 ! {add, malmo, {r4, NodeDescriptor}},
+  %r4 ! {add, stockholm, {r1, NodeDescriptor}},
+  timer:sleep(500).
 
 testSendMessageStockholmMalmo() ->
-  testSetupSweden(),
-  timer:sleep(500),
   r1 ! broadcast,
   timer:sleep(500),
   r2 ! broadcast,
