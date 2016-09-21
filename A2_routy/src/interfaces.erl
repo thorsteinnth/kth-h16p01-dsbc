@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([testNew/0, testAdd/0, testRemove/0, testLookup/0]).
+-export([new/0, add/4, remove/2, lookup/2, ref/2, name/2, list/1, broadcast/2]).
 
 % A router will also need to keep track of a set of interfaces.
 % A interface is described by the symbolic name (london), a process reference and a process identifier.
@@ -76,6 +76,7 @@ broadcast(Message, Intf) ->
   lists:foreach(
     fun(Pid) ->
       Pid ! Message
+      %io:format("SHOULD SEND MESSAGE ~p TO PID ~p~n", [Message, Pid])
     end,
     AllPids
   ).
@@ -109,5 +110,22 @@ testRemove() ->
 testLookup() ->
   Intf = testAdd(),
   lookup(berlin, Intf).
+
+testRef() ->
+  Intf = testAdd(),
+  ref(berlin, Intf).
+
+testName() ->
+  Intf = testAdd(),
+  name(stockholmref, Intf).
+
+testList() ->
+  Intf = testAdd(),
+  list(Intf).
+
+testBroadcast() ->
+  % NOTE: This doesn't actually work, can only send messages to actual PIDs
+  Intf = testAdd(),
+  broadcast(testmessage, Intf).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
