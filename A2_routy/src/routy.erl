@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([start/2, stop/1]).
+-export([start/2, stop/1, getProcessStatus/1, test/0]).
 
 start(Reg, Name) ->
   register(Reg, spawn(fun() -> init(Name) end)).
@@ -33,14 +33,20 @@ router(Name, N, Hist, Intf, Table, Map) ->
       Ref = erlang:monitor(process, Pid),
       Intf1 = interfaces:add(Node, Ref, Pid, Intf),
       printInterfaces(Name, Intf1), % TODO Remove
-      router(Name, N, Hist, Intf1, Table, Map);
+      % Update my map to show that I am directly linked to my interfaces
+      % NOTE: Not part of assignment document, adding this myself
+      Map1 = map:update(Name, interfaces:list(Intf1), Map),
+      router(Name, N, Hist, Intf1, Table, Map1);
     {remove, Node} ->
       % Remove node from interface
       {ok, Ref} = interfaces:ref(Node, Intf),
       erlang:demonitor(Ref),
       Intf1 = interfaces:remove(Node, Intf),
       printInterfaces(Name, Intf1), % TODO Remove
-      router(Name, N, Hist, Intf1, Table, Map);
+      % Update my map to show that I am directly linked to my interfaces
+      % NOTE: Not part of assignment document, adding this myself
+      Map1 = map:update(Name, interfaces:list(Intf1), Map),
+      router(Name, N, Hist, Intf1, Table, Map1);
     {'DOWN', Ref, process, _, _} ->
       % Monitor has told us that a node is down,
       % remove from interfaces
@@ -48,7 +54,10 @@ router(Name, N, Hist, Intf, Table, Map) ->
       io:format("~w: exit received from ~w~n", [Name, Down]),
       Intf1 = interfaces:remove(Down, Intf),
       printInterfaces(Name, Intf1), % TODO Remove
-      router(Name, N, Hist, Intf1, Table, Map);
+      % Update my map to show that I am directly linked to my interfaces
+      % NOTE: Not part of assignment document, adding this myself
+      Map1 = map:update(Name, interfaces:list(Intf1), Map),
+      router(Name, N, Hist, Intf1, Table, Map1);
     {status, From} ->
       % Received a status request message from From
       % Let's reply with our status
@@ -61,6 +70,7 @@ router(Name, N, Hist, Intf, Table, Map) ->
         {new, Hist1} ->
           % Broadcast message to all my interfaces
           interfaces:broadcast({links, Node, R, Links}, Intf),
+          % Update the sending node in my map
           Map1 = map:update(Node, Links, Map),
           router(Name, N, Hist1, Intf, Table, Map1);
         old ->
@@ -87,7 +97,16 @@ getProcessStatus(Pid) ->
   Pid ! {status, self()},
   receive
     {status, Reply} ->
-      io:format("~p: Received status reply from ~p: ~p~n", [self(), Pid, Reply])
+      {Name, N, Hist, Intf, Table, Map} = Reply,
+      io:format(
+        "~p: Received status reply from ~p:
+        Name: ~p
+        N: ~p
+        Hist: ~p
+        Intf: ~p
+        Table: ~p
+        Map: ~p~n",
+        [self(), Pid, Name, N, Hist, Intf, Table, Map])
   end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -117,5 +136,24 @@ testGetProcessStatus() ->
   r1 ! {add, berlin, r2},
   r2 ! {add, london, r1},
   getProcessStatus(r2).
+
+test() ->
+  start(r1, stockholm),
+  start(r2, lund),
+  r2 ! {add, stockholm, {r1, 'sweden@192.168.1.8'}},
+  timer:sleep(500),
+  r1 ! {add, lund, {r2, 'sweden@192.168.1.8'}},
+  timer:sleep(500),
+  r1 ! broadcast,
+  timer:sleep(500),
+  r2 ! broadcast,
+  timer:sleep(500),
+  r1 ! update,
+  timer:sleep(500),
+  r2 ! update,
+  timer:sleep(500),
+  getProcessStatus(r1),
+  getProcessStatus(r2),
+  ok.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
