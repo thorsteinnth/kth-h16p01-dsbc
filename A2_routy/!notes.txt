@@ -64,3 +64,8 @@ send to lund ... route to stockholm first
 Am I supposed to have myself in the map? Isn't like that in the code given in the assignment document.
 
 Don't think this matters. We never route to ourselves. Don't look in the routing table if the message is meant for us.
+
+NOTE:
+Routers of course have to connect to each other.
+A-B ... A has B in its interfaces, B has A in its interfaces.
+When you send broadcast messages you send them out on all your interfaces.

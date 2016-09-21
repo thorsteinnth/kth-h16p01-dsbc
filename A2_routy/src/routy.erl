@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([start/2, stop/1, getProcessStatus/1, test/0]).
+-export([start/2, stop/1, getProcessStatus/1, test/0, testSendMessageStockholmMalmo/0]).
 
 start(Reg, Name) ->
   register(Reg, spawn(fun() -> init(Name) end)).
@@ -32,7 +32,7 @@ router(Name, N, Hist, Intf, Table, Map) ->
       % Add node to interfaces
       Ref = erlang:monitor(process, Pid),
       Intf1 = interfaces:add(Node, Ref, Pid, Intf),
-      printInterfaces(Name, Intf1), % TODO Remove
+      %printInterfaces(Name, Intf1), % TODO Remove
       % Update my map to show that I am directly linked to my interfaces
       % NOTE: Not part of assignment document, adding this myself
       Map1 = map:update(Name, interfaces:list(Intf1), Map),
@@ -42,7 +42,7 @@ router(Name, N, Hist, Intf, Table, Map) ->
       {ok, Ref} = interfaces:ref(Node, Intf),
       erlang:demonitor(Ref),
       Intf1 = interfaces:remove(Node, Intf),
-      printInterfaces(Name, Intf1), % TODO Remove
+      %printInterfaces(Name, Intf1), % TODO Remove
       % Update my map to show that I am directly linked to my interfaces
       % NOTE: Not part of assignment document, adding this myself
       Map1 = map:update(Name, interfaces:list(Intf1), Map),
@@ -53,7 +53,7 @@ router(Name, N, Hist, Intf, Table, Map) ->
       {ok, Down} = interfaces:name(Ref,Intf),
       io:format("~w: exit received from ~w~n", [Name, Down]),
       Intf1 = interfaces:remove(Down, Intf),
-      printInterfaces(Name, Intf1), % TODO Remove
+      %printInterfaces(Name, Intf1), % TODO Remove
       % Update my map to show that I am directly linked to my interfaces
       % NOTE: Not part of assignment document, adding this myself
       Map1 = map:update(Name, interfaces:list(Intf1), Map),
@@ -80,6 +80,7 @@ router(Name, N, Hist, Intf, Table, Map) ->
     update ->
       % Make router update its routing table
       Table1 = dijkstra:table(interfaces:list(Intf), Map),
+      printMyStatus(Name, N, Hist, Intf, Table1, Map),
       router(Name, N, Hist, Intf, Table1, Map);
     broadcast ->
       % Make router broadcast a link state message
@@ -88,11 +89,11 @@ router(Name, N, Hist, Intf, Table, Map) ->
       router(Name, N+1, Hist, Intf, Table, Map);
     {route, Name, From, Message} ->
       % Message has arrived at final destination
-      io:format("~w: received message ~w ~n", [Name, Message]),
+      io:format("~w: received message (~s) ~n", [Name, Message]),
       router(Name, N, Hist, Intf, Table, Map);
     {route, To, From, Message} ->
       % Received a message not meant for us, route it onwards
-      io:format("~w: routing message (~w)", [Name, Message]),
+      io:format("~w: routing message (~s)~n", [Name, Message]),
       case dijkstra:route(To, Table) of
         {ok, Gw} ->
           case interfaces:lookup(Gw, Intf) of
@@ -114,6 +115,17 @@ router(Name, N, Hist, Intf, Table, Map) ->
 
 printInterfaces(Name, Intf) ->
   io:format("~p (~w): Interfaces: ~p~n", [self(), Name, Intf]).
+
+printMyStatus(Name, N, Hist, Intf, Table, Map) ->
+  io:format(
+    "~p: STATUS:
+    Name: ~p
+    N: ~p
+    Hist: ~p
+    Intf: ~p
+    Table: ~p
+    Map: ~p~n",
+    [self(), Name, N, Hist, Intf, Table, Map]).
 
 getProcessStatus(Pid) ->
   Pid ! {status, self()},
@@ -192,6 +204,58 @@ test() ->
   getProcessStatus(r2),
   getProcessStatus(r3),
   getProcessStatus(r4),
+  ok.
+
+testSetupSweden() ->
+  % stockholm-lund-uppsala-malmo
+  start(r1, stockholm),
+  start(r2, lund),
+  start(r3, uppsala),
+  start(r4, malmo),
+  % Connect r1 and r2
+  r1 ! {add, lund, {r2, 'sweden@192.168.1.8'}},
+  r2 ! {add, stockholm, {r1, 'sweden@192.168.1.8'}},
+  % Connect r2 and r3
+  r2 ! {add, uppsala, {r3, 'sweden@192.168.1.8'}},
+  r3 ! {add, lund, {r2, 'sweden@192.168.1.8'}},
+  % Connect r3 and r4
+  r3 ! {add, malmo, {r4, 'sweden@192.168.1.8'}},
+  r4 ! {add, uppsala, {r3, 'sweden@192.168.1.8'}},
+  % Let's now connect r1 to r3, should then skip r2
+  % Connect r1 and r3
+  r1 ! {add, uppsala, {r3, 'sweden@192.168.1.8'}},
+  r3 ! {add, stockholm, {r1, 'sweden@192.168.1.8'}}.
+  % Let's now connect r1 to r4, should then skip r2, r3
+  % Connect r1 and r4
+  %r1 ! {add, malmo, {r4, 'sweden@192.168.1.8'}},
+  %r4 ! {add, stockholm, {r1, 'sweden@192.168.1.8'}}.
+
+testSendMessageStockholmMalmo() ->
+  testSetupSweden(),
+  timer:sleep(500),
+  r1 ! broadcast,
+  timer:sleep(500),
+  r2 ! broadcast,
+  timer:sleep(500),
+  r3 ! broadcast,
+  timer:sleep(500),
+  r4 ! broadcast,
+  timer:sleep(500),
+  r1 ! update,
+  timer:sleep(500),
+  r2 ! update,
+  timer:sleep(500),
+  r3 ! update,
+  timer:sleep(500),
+  r4 ! update,
+  timer:sleep(500),
+  r1 ! {send, malmo, "Message from Stockholm to Malmo"},
+  io:format("Will stop all processes in 5 sec~n", []),
+  timer:sleep(5000),
+  stop(r1),
+  stop(r2),
+  stop(r3),
+  stop(r4),
   ok.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
