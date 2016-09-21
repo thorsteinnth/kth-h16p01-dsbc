@@ -54,6 +54,28 @@ router(Name, N, Hist, Intf, Table, Map) ->
       % Let's reply with our status
       From ! {status, {Name, N, Hist, Intf, Table, Map}},
       router(Name, N, Hist, Intf, Table, Map);
+    {links, Node, R, Links} ->
+      % Received link state message
+      % Update map if new message
+      case hist:update(Node, R, Hist) of
+        {new, Hist1} ->
+          % Broadcast message to all my interfaces
+          interfaces:broadcast({links, Node, R, Links}, Intf),
+          Map1 = map:update(Node, Links, Map),
+          router(Name, N, Hist1, Intf, Table, Map1);
+        old ->
+          % This was an old message, do nothing
+          router(Name, N, Hist, Intf, Table, Map)
+      end;
+    update ->
+      % Make router update its routing table
+      Table1 = dijkstra:table(interfaces:list(Intf), Map),
+      router(Name, N, Hist, Intf, Table1, Map);
+    broadcast ->
+      % Make router broadcast a link state message
+      Message = {links, Name, N, interfaces:list(Intf)},
+      interfaces:broadcast(Message, Intf),
+      router(Name, N+1, Hist, Intf, Table, Map);
     stop ->
       ok
   end.
