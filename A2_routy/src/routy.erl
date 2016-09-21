@@ -11,7 +11,12 @@
 
 %% API
 -export([start/2, stop/1,
-  getProcessStatus/1, test/0, testSetupSweden/1, testSendMessageStockholmMalmo/0]).
+  getProcessStatus/1, test/0,
+  testSetupSweden/1, testSendMessageStockholmMalmo/0,
+  testSetupIceland/1, testSendMessageReykjavikRif/0,
+  testBroadcastAndUpdateRouters/0, testStopRouterProcesses/0,
+  testSweden/1, testIceland/1,
+  testSetupStockholmToRifCommunicationSweden/1, testSetupStockholmToRifCommunicationIceland/1]).
 
 start(Reg, Name) ->
   register(Reg, spawn(fun() -> init(Name) end)).
@@ -235,6 +240,40 @@ testSetupSweden(NodeDescriptor) ->
   timer:sleep(500).
 
 testSendMessageStockholmMalmo() ->
+  r1 ! {send, malmo, "Message from Stockholm to Malmo"},
+  ok.
+
+% NodeDescriptor e.g. sweden@192.168.1.8
+% routy:testSetupSweden('iceland@192.168.1.8').
+testSetupIceland(NodeDescriptor) ->
+  start(r1, reykjavik),
+  start(r2, akureyri),
+  start(r3, isafjordur),
+  start(r4, rif),
+  % Connect r1 and r2
+  r1 ! {add, akureyri, {r2, NodeDescriptor}},
+  r2 ! {add, reykjavik, {r1, NodeDescriptor}},
+  % Connect r2 and r3
+  r2 ! {add, isafjordur, {r3, NodeDescriptor}},
+  r3 ! {add, akureyri, {r2, NodeDescriptor}},
+  % Connect r3 and r4
+  r3 ! {add, rif, {r4, NodeDescriptor}},
+  r4 ! {add, isafjordur, {r3, NodeDescriptor}},
+  % Let's now connect r1 to r3, should then skip r2
+  % Connect r1 and r3
+  %r1 ! {add, uppsala, {r3, NodeDescriptor}},
+  %r3 ! {add, stockholm, {r1, NodeDescriptor}},
+  % Let's now connect r1 to r4, should then skip r2, r3
+  % Connect r1 and r4
+  %r1 ! {add, malmo, {r4, NodeDescriptor}},
+  %r4 ! {add, stockholm, {r1, NodeDescriptor}},
+  timer:sleep(500).
+
+testSendMessageReykjavikRif() ->
+  r1 ! {send, rif, "Message from Reykjavik to Rif"},
+  ok.
+
+testBroadcastAndUpdateRouters() ->
   r1 ! broadcast,
   timer:sleep(500),
   r2 ! broadcast,
@@ -250,14 +289,68 @@ testSendMessageStockholmMalmo() ->
   r3 ! update,
   timer:sleep(500),
   r4 ! update,
-  timer:sleep(500),
-  r1 ! {send, malmo, "Message from Stockholm to Malmo"},
-  io:format("Will stop all processes in 5 sec~n", []),
-  timer:sleep(5000),
+  timer:sleep(500).
+
+testStopRouterProcesses() ->
+  io:format("Will stop all router processes in shell~n", []),
   stop(r1),
   stop(r2),
   stop(r3),
-  stop(r4),
-  ok.
+  stop(r4).
+
+testSweden(NodeDescriptor) ->
+  testSetupSweden(NodeDescriptor),
+  testBroadcastAndUpdateRouters(),
+  testSendMessageStockholmMalmo(),
+  timer:sleep(5000),
+  testStopRouterProcesses().
+
+testIceland(NodeDescriptor) ->
+  testSetupIceland(NodeDescriptor),
+  testBroadcastAndUpdateRouters(),
+  testSendMessageReykjavikRif(),
+  timer:sleep(5000),
+  testStopRouterProcesses().
+
+testSetupStockholmToRifCommunicationSweden(IcelandNodeDescriptor) ->
+  % Link malmo to reykjavik
+  r4 ! {add, reykjavik, {r1, IcelandNodeDescriptor}},
+  timer:sleep(5000),
+  testBroadcastAndUpdateRouters().
+
+testSetupStockholmToRifCommunicationIceland(SwedenNodeDescriptor) ->
+  % Link reykjavik to malmo
+  r1 ! {add, malmo, {r4, SwedenNodeDescriptor}},
+  timer:sleep(5000),
+  testBroadcastAndUpdateRouters().
+
+% TEST SCRIPT
+
+% Start shells
+% erl -name sweden@192.168.1.8 -setcookie routy -connect_all false
+% erl -name iceland@192.168.1.8 -setcookie routy -connect_all false
+
+% routy:testSetupSweden('sweden@192.168.1.8').
+% routy:testBroadcastAndUpdateRouters().
+% routy:testSendMessageStockholmMalmo().
+% routy:testStopRouterProcesses().
+% OR ALL IN ONE
+% routy:testSweden('sweden@192.168.1.8').
+
+% SAME FOR OTHER COUTRIES
+
+% SCRIPT TO SEND FROM STOCKHOLM TO RIF
+
+% Sweden
+% erl -name sweden@192.168.1.8 -setcookie routy -connect_all false
+% routy:testSetupSweden('sweden@192.168.1.8').
+% routy:testSetupStockholmToRifCommunicationSweden('iceland@192.168.1.8').
+% routy:testBroadcastAndUpdateRouters().
+% r1 ! {send, rif, "THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}.
+
+% Iceland
+% erl -name iceland@192.168.1.8 -setcookie routy -connect_all false
+% routy:testSetupIceland('iceland@192.168.1.8').
+% routy:testSetupStockholmToRifCommunicationIceland('sweden@192.168.1.8').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
