@@ -1,0 +1,64 @@
+Wasn't updating my map when I added a new interface
+routy:test() got me this:
+
+Two routers connected to each other.
+But to route to themselve they first send it to the other one. Don't know that they are linked to themselves.
+The gateway nodes should be part of the map.
+
+When we update the routing table we do:
+Table1 = dijkstra:table(interfaces:list(Intf), Map),
+
+Our interfaces are our gateways, but the Map is never updated to show myself and what I am connected to
+
+(sweden@192.168.1.8)2> routy:test().
+<0.71.0> (lund): Interfaces: [{stockholm,#Ref<0.0.6.118>,
+                                  {r1,'sweden@192.168.1.8'}}]
+<0.70.0> (stockholm): Interfaces: [{lund,#Ref<0.0.6.120>,
+                                       {r2,'sweden@192.168.1.8'}}]
+<0.63.0>: Received status reply from r1: {stockholm,1,
+                                          [{stockholm,inf},{lund,0}],
+                                          [{lund,#Ref<0.0.6.120>,
+                                            {r2,'sweden@192.168.1.8'}}],
+                                          [{lund,lund},{stockholm,lund}],
+                                          [{lund,[stockholm]}]}
+<0.63.0>: Received status reply from r2: {lund,1,
+                                          [{lund,inf},{stockholm,0}],
+                                          [{stockholm,#Ref<0.0.6.118>,
+                                            {r1,'sweden@192.168.1.8'}}],
+                                          [{stockholm,stockholm},
+                                           {lund,stockholm}],
+                                          [{stockholm,[lund]}]}
+ok
+
+I code to update the map with my interfaces, so the map shows what cities I am connected to
+Then I get:
+
+(sweden@192.168.1.8)3> routy:test().
+<0.75.0> (lund): Interfaces: [{stockholm,#Ref<0.0.3.23>,
+                                  {r1,'sweden@192.168.1.8'}}]
+<0.74.0> (stockholm): Interfaces: [{lund,#Ref<0.0.3.25>,
+                                       {r2,'sweden@192.168.1.8'}}]
+<0.63.0>: Received status reply from r1:
+        Name: stockholm
+        N: 1
+        Hist: [{stockholm,inf},{lund,0}]
+        Intf: [{lund,#Ref<0.0.3.25>,{r2,'sweden@192.168.1.8'}}]
+        Table: [{lund,lund},{stockholm,lund}]
+        Map: [{stockholm,[lund]},{lund,[stockholm]}]
+<0.63.0>: Received status reply from r2:
+        Name: lund
+        N: 1
+        Hist: [{lund,inf},{stockholm,0}]
+        Intf: [{stockholm,#Ref<0.0.3.23>,{r1,'sweden@192.168.1.8'}}]
+        Table: [{stockholm,stockholm},{lund,stockholm}]
+        Map: [{lund,[stockholm]},{stockholm,[lund]}]
+ok
+
+The map is correct, BUT ... the routing table still shows that if I want to route to myself, I should route to the
+other city first, which I guess is not correct.
+
+For lund we have:
+Table: [{stockholm,stockholm},{lund,stockholm}]
+send to lund ... route to stockholm first
+
+Am I supposed to have myself in the map? Isn't like that in the code given in the assignment document.
