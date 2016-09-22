@@ -396,9 +396,8 @@ testSetupStockholmToRifCommunicationIceland(SwedenNodeDescriptor) ->
 % Iceland
 % routy:stop(r5).
 % Update Icelandic routers ... have to do them one by one now because we only have 4 left, so the script doesn't work
+% Note that only the routers linked to the dead node need to broadcast
 % r1 ! broadcast.
-% r2 ! broadcast.
-% r3 ! broadcast.
 % r4 ! broadcast.
 % r1 ! update.
 % r2 ! update.
