@@ -69,3 +69,37 @@ NOTE:
 Routers of course have to connect to each other.
 A-B ... A has B in its interfaces, B has A in its interfaces.
 When you send broadcast messages you send them out on all your interfaces.
+
+TEST2
+
+(sweden@130.229.175.44)4> r1 ! {send, rif, "THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}.
+stockholm: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+{send,rif,"THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}
+uppsala: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+malmo: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+(sweden@130.229.175.44)5>
+
+reykjavik: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+keflavik: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+rif: received message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+(iceland@130.229.175.44)3>
+
+(iceland@130.229.175.44)3> routy:stop(r5).
+reykjavik: exit received from keflavik
+rif: exit received from keflavik
+true
+
+After killing keflavik:
+
+(sweden@130.229.175.44)6> r1 ! {send, rif, "THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}.
+stockholm: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+{send,rif,"THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}
+uppsala: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+malmo: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+
+reykjavik: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+akureyri: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+isafjordur: routing message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+rif: received message (THIS IS A MESSAGE FROM STOCKHOLM TO RIF)
+(iceland@130.229.175.44)12>
+
