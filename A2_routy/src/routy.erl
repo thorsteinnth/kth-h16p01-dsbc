@@ -409,4 +409,22 @@ testSetupStockholmToRifCommunicationIceland(SwedenNodeDescriptor) ->
 % routy:testBroadcastAndUpdateRouters().
 % r1 ! {send, rif, "THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}.
 
+% Then we can re-add keflavik
+
+% Iceland
+% routy:start(r5, keflavik).
+% r1 ! {add, keflavik, {r5, 'iceland@130.229.175.44'}}.
+% r5 ! {add, reykjavik, {r1, 'iceland@130.229.175.44'}}.
+% r4 ! {add, keflavik, {r5, 'iceland@130.229.175.44'}}.
+% r5 ! {add, rif, {r4, 'iceland@130.229.175.44'}}.
+% r5 ! broadcast.
+% r1 ! broadcast.
+% r4 ! broadcast.
+% r1 ! update.
+% r4 ! update.
+% r5 ! update.
+
+% Sweden
+% r1 ! {send, rif, "THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
