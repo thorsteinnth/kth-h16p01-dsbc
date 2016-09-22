@@ -378,7 +378,35 @@ testSetupStockholmToRifCommunicationIceland(SwedenNodeDescriptor) ->
 % TEST 2
 
 % Iceland 2 ... connection from reykjavik-keflavik-rif
+% then kill Rif and have the system recover
 
-% TODO FINISH TEST 2 - WITH KEFLAVIK ... THEN KILL KEFLAVIK
+% Sweden
+% erl -name sweden@130.229.175.44 -setcookie routy -connect_all false
+% routy:testSetupSweden('sweden@130.229.175.44').
+% routy:testSetupStockholmToRifCommunicationSweden('iceland@130.229.175.44').
+% routy:testBroadcastAndUpdateRouters().
+% r1 ! {send, rif, "THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}.
+
+% Iceland
+% erl -name iceland@130.229.175.44 -setcookie routy -connect_all false
+% routy:testSetupIceland2('iceland@130.229.175.44').
+% routy:testSetupStockholmToRifCommunicationIceland('sweden@130.229.175.44').
+
+% Now let's kill keflavik
+% Iceland
+% routy:stop(r5).
+% Update Icelandic routers ... have to do them one by one now because we only have 4 left, so the script doesn't work
+% r1 ! broadcast.
+% r2 ! broadcast.
+% r3 ! broadcast.
+% r4 ! broadcast.
+% r1 ! update.
+% r2 ! update.
+% r3 ! update.
+% r4 ! update.
+
+% Sweden
+% routy:testBroadcastAndUpdateRouters().
+% r1 ! {send, rif, "THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
