@@ -12,8 +12,8 @@
 %% API
 -export([start/2, stop/1,
   getProcessStatus/1, test/0,
-  testSetupSweden/1, testSendMessageStockholmMalmo/0,
-  testSetupIceland/1, testSendMessageReykjavikRif/0,
+  testSetupSweden/1,
+  testSetupIceland/1, testSetupIceland2/1,
   testBroadcastAndUpdateRouters/0, testStopRouterProcesses/0,
   testSweden/1, testIceland/1,
   testSetupStockholmToRifCommunicationSweden/1, testSetupStockholmToRifCommunicationIceland/1]).
@@ -220,6 +220,8 @@ testSetupSweden(NodeDescriptor) ->
   start(r2, lund),
   start(r3, uppsala),
   start(r4, malmo),
+  % Add halmstad, not connected to anything, just adding it here to have 5 routers in all tests
+  start(r5, halmstad),
   % Connect r1 and r2
   r1 ! {add, lund, {r2, NodeDescriptor}},
   r2 ! {add, stockholm, {r1, NodeDescriptor}},
@@ -239,10 +241,6 @@ testSetupSweden(NodeDescriptor) ->
   %r4 ! {add, stockholm, {r1, NodeDescriptor}},
   timer:sleep(500).
 
-testSendMessageStockholmMalmo() ->
-  r1 ! {send, malmo, "Message from Stockholm to Malmo"},
-  ok.
-
 % NodeDescriptor e.g. sweden@192.168.1.8
 % routy:testSetupSweden('iceland@192.168.1.8').
 testSetupIceland(NodeDescriptor) ->
@@ -250,6 +248,8 @@ testSetupIceland(NodeDescriptor) ->
   start(r2, akureyri),
   start(r3, isafjordur),
   start(r4, rif),
+  % Add keflavik, not connected to anything, just adding it here to have 5 routers in all tests
+  start(r5, keflavik),
   % Connect r1 and r2
   r1 ! {add, akureyri, {r2, NodeDescriptor}},
   r2 ! {add, reykjavik, {r1, NodeDescriptor}},
@@ -259,20 +259,35 @@ testSetupIceland(NodeDescriptor) ->
   % Connect r3 and r4
   r3 ! {add, rif, {r4, NodeDescriptor}},
   r4 ! {add, isafjordur, {r3, NodeDescriptor}},
-  % Let's now connect r1 to r3, should then skip r2
-  % Connect r1 and r3
-  %r1 ! {add, uppsala, {r3, NodeDescriptor}},
-  %r3 ! {add, stockholm, {r1, NodeDescriptor}},
-  % Let's now connect r1 to r4, should then skip r2, r3
-  % Connect r1 and r4
-  %r1 ! {add, malmo, {r4, NodeDescriptor}},
-  %r4 ! {add, stockholm, {r1, NodeDescriptor}},
   timer:sleep(500).
 
-testSendMessageReykjavikRif() ->
-  r1 ! {send, rif, "Message from Reykjavik to Rif"},
-  ok.
+testSetupIceland2(NodeDescriptor) ->
+  % New connection, reykjavik-keflavik,rif
+  start(r1, reykjavik),
+  start(r2, akureyri),
+  start(r3, isafjordur),
+  start(r4, rif),
+  start(r5, keflavik),
+  % Connect r1 and r2
+  r1 ! {add, akureyri, {r2, NodeDescriptor}},
+  r2 ! {add, reykjavik, {r1, NodeDescriptor}},
+  % Connect r2 and r3
+  r2 ! {add, isafjordur, {r3, NodeDescriptor}},
+  r3 ! {add, akureyri, {r2, NodeDescriptor}},
+  % Connect r3 and r4
+  r3 ! {add, rif, {r4, NodeDescriptor}},
+  r4 ! {add, isafjordur, {r3, NodeDescriptor}},
+  % Connect r1 and r5
+  r1 ! {add, keflavik, {r5, NodeDescriptor}},
+  r5 ! {add, reykjavik, {r1, NodeDescriptor}},
+  % Connect r5 and r4
+  r4 ! {add, keflavik, {r5, NodeDescriptor}},
+  r5 ! {add, rif, {r4, NodeDescriptor}},
+  timer:sleep(500).
 
+% We have to call broadcast on all routers to make them send their links out into the network
+% Once that has happened we have to call update on all routers to make them update their routing tables
+% with the new information.
 testBroadcastAndUpdateRouters() ->
   r1 ! broadcast,
   timer:sleep(500),
@@ -282,6 +297,8 @@ testBroadcastAndUpdateRouters() ->
   timer:sleep(500),
   r4 ! broadcast,
   timer:sleep(500),
+  r5 ! broadcast,
+  timer:sleep(500),
   r1 ! update,
   timer:sleep(500),
   r2 ! update,
@@ -289,6 +306,8 @@ testBroadcastAndUpdateRouters() ->
   r3 ! update,
   timer:sleep(500),
   r4 ! update,
+  timer:sleep(500),
+  r5 ! update,
   timer:sleep(500).
 
 testStopRouterProcesses() ->
@@ -296,19 +315,20 @@ testStopRouterProcesses() ->
   stop(r1),
   stop(r2),
   stop(r3),
-  stop(r4).
+  stop(r4),
+  stop(r5).
 
 testSweden(NodeDescriptor) ->
   testSetupSweden(NodeDescriptor),
   testBroadcastAndUpdateRouters(),
-  testSendMessageStockholmMalmo(),
+  r1 ! {send, malmo, "Message from Stockholm to Malmo"},
   timer:sleep(5000),
   testStopRouterProcesses().
 
 testIceland(NodeDescriptor) ->
   testSetupIceland(NodeDescriptor),
   testBroadcastAndUpdateRouters(),
-  testSendMessageReykjavikRif(),
+  r1 ! {send, rif, "Message from Reykjavik to Rif"},
   timer:sleep(5000),
   testStopRouterProcesses().
 
@@ -337,20 +357,28 @@ testSetupStockholmToRifCommunicationIceland(SwedenNodeDescriptor) ->
 % OR ALL IN ONE
 % routy:testSweden('sweden@192.168.1.8').
 
-% SAME FOR OTHER COUTRIES
+% SAME FOR OTHER COUNTRIES
 
 % SCRIPT TO SEND FROM STOCKHOLM TO RIF
 
+% TEST 1
+
 % Sweden
-% erl -name sweden@192.168.1.8 -setcookie routy -connect_all false
-% routy:testSetupSweden('sweden@192.168.1.8').
-% routy:testSetupStockholmToRifCommunicationSweden('iceland@192.168.1.8').
+% erl -name sweden@130.229.175.44 -setcookie routy -connect_all false
+% routy:testSetupSweden('sweden@130.229.175.44').
+% routy:testSetupStockholmToRifCommunicationSweden('iceland@130.229.175.44').
 % routy:testBroadcastAndUpdateRouters().
 % r1 ! {send, rif, "THIS IS A MESSAGE FROM STOCKHOLM TO RIF"}.
 
 % Iceland
-% erl -name iceland@192.168.1.8 -setcookie routy -connect_all false
-% routy:testSetupIceland('iceland@192.168.1.8').
-% routy:testSetupStockholmToRifCommunicationIceland('sweden@192.168.1.8').
+% erl -name iceland@130.229.175.44 -setcookie routy -connect_all false
+% routy:testSetupIceland('iceland@130.229.175.44').
+% routy:testSetupStockholmToRifCommunicationIceland('sweden@130.229.175.44').
+
+% TEST 2
+
+% Iceland 2 ... connection from reykjavik-keflavik-rif
+
+% TODO FINISH TEST 2 - WITH KEFLAVIK ... THEN KILL KEFLAVIK
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
