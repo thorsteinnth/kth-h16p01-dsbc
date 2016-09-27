@@ -1,4 +1,11 @@
 
+A sends message M to B
+A logs M
+B receives M
+B logs M
+
+A logs M must happen before B logs
+
 Test run
 
 log: na john {received,{hello,78}}
@@ -24,3 +31,91 @@ Received before it is sent.
 Lamport clocks give us partial order, so we can see that this message sending event (message 7) is out of order in the logger.
 
 TODO: What is always true and what is sometimes true? How do you play it safe?
+
+This isn't total ordering, so I can't just print out in increasing time from the logger.
+If A and B just send to each other, and C and D just send to each other, they will have different times.
+The logger can't know if a message from A or B should be printed before a message from C or D, since the messages
+from each process do not contain info on the state of the entire system (i.e. the sending process' view of the system).
+The initial clock in the logger (dealing with lamport time from the workers) then has to look at each process individually.
+Have a clock for each process.
+
+If we receive all messages before printing them out, put them in a queue and order the queue by time,
+I will be guaranteed that every pair of send-receive messages in the correct order (but this would of course not be
+a total ordering, only ordered pairwise).
+
+But I want to print this out as we go, can't wait for all messages.
+
+NOPE
+I maintain a clock with the timestamps of the last received messages from all workers.
+If the largest timestamp from process A is 100, then I know I can print all messages from A that have a smaller timestamp
+than 100 (clearing the pipe so to speak), because between two processes (logger and A) we have a FIFO channel.
+NOPE ... will always have a FIFO order between two processes so this does nothing to help me. Could just print messages
+from A out and they would be in order because of the FIFO channel.
+NOPE
+
+-------------------------------
+
+Keep the queue ordered.
+If I check if the message has a time <= the smallest of all the time stamps in the clock.
+Don't know where the send message that we are trying to log was sent.
+
+Recipient larger:
+A at time 10
+A at time 11, send message with 11 to B
+A logs message with time 11
+B at time 20, receives message, time now 21
+B logs message with time 21
+
+-> Recipient time stamp larger than sender
+
+Recipient smaller:
+A at time 10
+A at time 11, send message with 11 to B
+A logs message with time 11
+B at time 6, receives message, time now max(6,11) + 1 = 12
+B logs message with time 12
+
+-> Recipient time stamp larger than sender
+
+-------------------------------
+
+If I was only dealing with two processes:
+A sends message
+A logs message
+B receives message
+B logs message
+-> A must log before B
+
+A at time 10
+A at time 11, send message with 11 to B
+A sends log request for message 11
+
+B at time 20, receives message, time now 21
+B sends log request for message 21
+
+Logger receives log request from B for message 21
+Cannot log it yet!
+When am I sure that I can log it?
+Let's say largest time logged from A is 10
+Need clock for A to be >= 21 ... then I can be sure that there is no message from A still on its way
+(because the receiver time will always be larger than the sender time)
+
+So I can log the message from B if the time on it is <= the clock time of A.
+
+When I am dealing with multiple processes, I do not know who is the receiver of the message.
+Therefore I can only log the message when the time on it is <= the clock time for all the OTHER processes
+(or just check all processes, the clock time for the process that requested the log will be >= than the time on the
+message that we are trying to log).
+
+A at time 10
+A at time 11, send message with 11 to B
+B at time 10, receives message with 11, B at time 12
+
+A sends log request for message 11
+B sends log request for message 12
+Cannot log B until A has sent log request for message 12 or higher, will never log anything unless A requests a log
+for another message
+-> Some messages will never be logged
+-> OK to print the rest of the hold back queue þegar maður drepur loggerinn?
+
+
