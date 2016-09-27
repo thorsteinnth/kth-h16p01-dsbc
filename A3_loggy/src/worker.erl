@@ -21,9 +21,10 @@ stop(Worker) ->
 % Initialize a worker. Note it will not start until it receives a peers message.
 init(Name, Log, Seed, Sleep, Jitter) ->
   random:seed(Seed, Seed, Seed),
+  InitialTime = time:zero(),
   receive
     {peers, Peers} ->
-      loop(Name, Log, Peers, Sleep, Jitter);
+      loop(Name, Log, Peers, Sleep, Jitter, InitialTime);
     stop ->
       ok
   end.
@@ -32,29 +33,31 @@ init(Name, Log, Seed, Sleep, Jitter) ->
 peers(Wrk, Peers) ->
   Wrk ! {peers, Peers}.
 
-loop(Name, Log, Peers, Sleep, Jitter) ->
+loop(Name, Log, Peers, Sleep, Jitter, MyTime) ->
   Wait = random:uniform(Sleep),
   receive
     {msg, Time, Msg} ->
       % Received message from peer
-      Log ! {log, Name, Time, {received, Msg}},
-      loop(Name, Log, Peers, Sleep, Jitter);
+      MaxTime = time:merge(Time, MyTime),
+      NewTime = time:inc("whatever", MaxTime),
+      Log ! {log, Name, NewTime, {received, Msg}},
+      loop(Name, Log, Peers, Sleep, Jitter, NewTime);
     stop ->
       ok;
     Error ->
-      Log ! {log, Name, time, {error, Error}}
+      Log ! {log, Name, MyTime, {error, Error}}
   after Wait ->
     % Send message to random peer
+    % Increase local time
+    NewTime = time:inc("whatever", MyTime),
     Selected = select(Peers),
-    % Dummy value for time, the worker does not know about the time
-    Time = na,
     % Create message with hopefully random number value
     Message = {hello, random:uniform(100)},
-    Selected ! {msg, Time, Message},
+    Selected ! {msg, NewTime, Message},
     % Delay between sending message to peer and sending a message to the logger
     jitter(Jitter),
-    Log ! {log, Name, Time, {sending, Message}},
-    loop(Name, Log, Peers, Sleep, Jitter)
+    Log ! {log, Name, NewTime, {sending, Message}},
+    loop(Name, Log, Peers, Sleep, Jitter, NewTime)
   end.
 
 % Select a random peer from the list of peers
