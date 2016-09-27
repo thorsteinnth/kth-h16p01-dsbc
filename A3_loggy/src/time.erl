@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([zero/0, inc/2, merge/2, leq/2,
+-export([zero/0, inc/2, merge/2, leq/2, clock/1, update/3, safe/2,
   testClock/0, testUpdate/0, testSafe/0]).
 
 % Return an initial Lamport value (could it be 0)
