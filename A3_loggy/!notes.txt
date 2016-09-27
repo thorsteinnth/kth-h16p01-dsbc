@@ -1,0 +1,14 @@
+
+Test run
+
+log: na john {received,{hello,78}}
+log: na ringo {sending,{hello,79}}
+log: na paul {sending,{hello,24}}
+log: na george {sending,{hello,78}}
+
+There is no way to differentiate between the sent message and the received message except for the random number
+in the message.
+
+Can see that john received message 78 before george sent message 78
+
+TODO: Experiment with the jitter and see if you can increase or decrease (eliminate?) the number of entries that are wrong.
