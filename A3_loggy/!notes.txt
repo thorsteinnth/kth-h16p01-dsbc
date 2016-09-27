@@ -12,3 +12,15 @@ in the message.
 Can see that john received message 78 before george sent message 78
 
 TODO: Experiment with the jitter and see if you can increase or decrease (eliminate?) the number of entries that are wrong.
+
+Lamport time:
+
+log: 1437 george {received,{hello,7}}
+log: 1437 paul {sending,{hello,43}}
+log: 1436 john {sending,{hello,7}}
+
+Here we have the same message (random number 7).
+Received before it is sent.
+Lamport clocks give us partial order, so we can see that this message sending event (message 7) is out of order in the logger.
+
+TODO: What is always true and what is sometimes true? How do you play it safe?
