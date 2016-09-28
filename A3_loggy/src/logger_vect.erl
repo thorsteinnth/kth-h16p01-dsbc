@@ -38,14 +38,19 @@ loop(Queue, Clock) ->
       %NewClock = time:update(From, Time, Clock),
       NewClock = vect:update(From, Time, Clock),
       % Add message to queue
-      NewQueue = addLogRequestToQueueAndSort({log, From, Time, Msg}, Queue),
+      NewQueue = addLogRequestToQueue({log, From, Time, Msg}, Queue),
       % Log safe messages from queue
       NewAndUpdatedQueue = logSafeLogRequestsFromQueue(NewQueue, NewClock),
       loop(NewAndUpdatedQueue, NewClock);
     stop ->
-      io:format("Stopping logger, will log remaining queue~n", []),
+      io:format("Stopping logger, will log what is safe in remaining queue. Remaining queue:~n", []),
       printQueue(Queue),
-      logMessagesInQueue(Queue),
+      %logMessagesInQueue(Queue),
+      io:format("Stopping logger, current clock:~n", []),
+      printClock(Clock),
+      NewAndUpdatedQueue = logSafeLogRequestsFromQueue(Queue, Clock),
+      io:format("Stopping logger, remaining queue~n", []),
+      printQueue(NewAndUpdatedQueue),
       ok
   end.
 
@@ -59,10 +64,9 @@ newQueue() ->
 % with Msg expanded {log, Name, Time, {sending, Message}}
 % where Message is of the form {hello, random:uniform(100)}
 % {log, Name, Time, {sending, {hello, random:uniform(100)}}}
-addLogRequestToQueueAndSort(LogRequest, Queue) ->
-  NewQueue = lists:append(Queue, [LogRequest]),
-  SortedQueue = lists:keysort(3, NewQueue),
-  SortedQueue.
+% NOTE: No need to sort
+addLogRequestToQueue(LogRequest, Queue) ->
+  lists:append(Queue, [LogRequest]).
 
 % Go through queue and and log messages that are safe to print
 % Return new queue where safe log requests have been removed.
@@ -82,14 +86,17 @@ logLogRequestFromQueueIfSafe(RemainingQueue, Clock) ->
   if
     SafeToLog ->
       % Let's log the request
+      printClock(Clock),
       log(From, Time, Msg),
       % Let's move on to the next request in the queue
       logLogRequestFromQueueIfSafe(RestOfLogRequests, Clock);
     true ->
-      % Not safe to log, reached the end of what is safe to log (since the queue is ordered)
-      % The RemainingQueue (what we have yet to check) is now empty
-      % Stop here.
-      logLogRequestFromQueueIfSafe([], Clock)
+      % Not safe to log, let's move on to the next request in the queue
+      % NOTE:
+      % The vector clock log request queue is unordered, can't stop here, unlike in the Lamport clock version.
+      % Even though this log request wasn't safe there may be other log requests later in the queue
+      % that are safe to log.
+      logLogRequestFromQueueIfSafe(RestOfLogRequests, Clock)
   end,
   ok.
 
@@ -141,10 +148,10 @@ testPrintQueue() ->
 
 testQueue() ->
   Queue = newQueue(),
-  Queue1 = addLogRequestToQueueAndSort({log, john, 4, {sending, {hello, 9999}}}, Queue),
-  Queue2 = addLogRequestToQueueAndSort({log, paul, 3, {sending, {hello, 9999}}}, Queue1),
-  Queue3 = addLogRequestToQueueAndSort({log, ringo, 1, {sending, {hello, 9999}}}, Queue2),
-  Queue4 = addLogRequestToQueueAndSort({log, george, 2, {sending, {hello, 9999}}}, Queue3),
+  Queue1 = addLogRequestToQueue({log, john, 4, {sending, {hello, 9999}}}, Queue),
+  Queue2 = addLogRequestToQueue({log, paul, 3, {sending, {hello, 9999}}}, Queue1),
+  Queue3 = addLogRequestToQueue({log, ringo, 1, {sending, {hello, 9999}}}, Queue2),
+  Queue4 = addLogRequestToQueue({log, george, 2, {sending, {hello, 9999}}}, Queue3),
   printQueue(Queue4).
 
 testLogSafeLogRequestsFromQueue() ->
@@ -159,10 +166,10 @@ testLogSafeLogRequestsFromQueue() ->
   Clock3 = vect:update(node3, 3, Clock2),
   Clock4 = vect:update(node4, 4, Clock3),
   Queue = newQueue(),
-  Queue1 = addLogRequestToQueueAndSort({log, john, 1, {sending, {hello, 9999}}}, Queue),
-  Queue2 = addLogRequestToQueueAndSort({log, paul, 2, {sending, {hello, 9999}}}, Queue1),
-  Queue3 = addLogRequestToQueueAndSort({log, ringo, 3, {sending, {hello, 9999}}}, Queue2),
-  Queue4 = addLogRequestToQueueAndSort({log, george, 4, {sending, {hello, 9999}}}, Queue3),
+  Queue1 = addLogRequestToQueue({log, john, 1, {sending, {hello, 9999}}}, Queue),
+  Queue2 = addLogRequestToQueue({log, paul, 2, {sending, {hello, 9999}}}, Queue1),
+  Queue3 = addLogRequestToQueue({log, ringo, 3, {sending, {hello, 9999}}}, Queue2),
+  Queue4 = addLogRequestToQueue({log, george, 4, {sending, {hello, 9999}}}, Queue3),
   UpdatedQueue = logSafeLogRequestsFromQueue(Queue4, Clock4),
   io:format("Updated queue: ~p~n", [UpdatedQueue]).
 
