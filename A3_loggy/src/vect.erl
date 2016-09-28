@@ -11,7 +11,7 @@
 
 %% API
 -export([zero/0, inc/2, merge/2, leq/2, clock/1, update/3, safe/2,
-  testInc/0, testMerge/0]).
+  testInc/0, testMerge/0, testLeq/0]).
 
 % Let's represent the vector clock like this:
 % [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
@@ -52,14 +52,40 @@ componentMaxMerge([{Name, IncomingTime} | Rest], Time) ->
       [{Name, IncomingTime} | merge(Rest, Time)]
 end.
 
-%----------------------------------------------------------------------
-
-% True if Ti is less than or equal to Tj
+% Is Ti less than or equal to Tj? True or false.
+% A vector time stamp is less than or equal to another timestamp if each of its entries are less than or equal to the
+% entries of the other timestamp. If the other time stamp does not have an entry for a given process that means that it
+% implicitly has a zero entry.
 leq(Ti,Tj) ->
-  if
-    Ti =< Tj -> true;
-    true -> false
-  end.
+  rLeq(Ti, Tj).
+
+% Check if TimeToCheck <= BaseTime
+rLeq([], _) ->
+  % We made it through all of the TimeToCheckTuples, so it is less than or equal
+  true;
+rLeq([{Name, TimeToCheck} | RestOfTimeToCheckTuples], BaseTimeTuples) ->
+  case lists:keyfind(Name, 1, BaseTimeTuples) of
+    {Name, BaseTime} ->
+      if
+        TimeToCheck =< BaseTime ->
+          % This time entry is smaller, move on to the next one
+          rLeq(RestOfTimeToCheckTuples, BaseTimeTuples);
+        true ->
+          % TimeToCheck is not less than or equal, return false
+          false
+      end;
+    false ->
+      % Could not find and entry for Name in the BaseTimeTuples, interpret this as an implicit zero entry in the
+      % BaseTimeTuples
+      if
+        TimeToCheck =< 0 -> % Will actually never be true, smallest entry is always 1
+          rLeq(RestOfTimeToCheckTuples, BaseTimeTuples);
+        true ->
+          false
+      end
+end.
+
+%----------------------------------------------------------------------
 
 % The logger should have a clock that keeps track of the timestamps of the last messages seen from each of the workers.
 % Return a clock that can keep track of the nodes
@@ -136,5 +162,25 @@ testMerge() ->
   printTime(ExtTime7),
   MergedTime = merge(Time8, ExtTime7),
   printTime(MergedTime).
+
+testLeq() ->
+  Time = zero(),
+  Time1 = inc(john, Time),
+  Time2 = inc(ringo, Time1),
+  Time3 = inc(ringo, Time2),
+  Time4 = inc(paul, Time3),
+  Time5 = inc(george, Time4),
+  Time6 = inc(thorsteinn, Time5),
+  printTime(Time6),
+  ExtTime = zero(),
+  ExtTime1 = inc(john, ExtTime),
+  ExtTime2 = inc(ringo, ExtTime1),
+  ExtTime3 = inc(ringo, ExtTime2),
+  ExtTime4 = inc(paul, ExtTime3),
+  ExtTime5 = inc(paul, ExtTime4),
+  ExtTime6 = inc(george, ExtTime5),
+  ExtTime7 = inc(fannar, ExtTime6),
+  printTime(ExtTime7),
+  leq(Time6, ExtTime7).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
