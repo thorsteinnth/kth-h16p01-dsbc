@@ -167,3 +167,24 @@ The log is ordered by time!
 
 When we stop the logger we still have some messages in the queue
 We just log the remains from the queue one by one (queue is ordered).
+
+---------------------------------
+
+Vector clocks
+
+Fannar er með vector klukku í loggernum sem er bara á sama formi og vector klukkan í workerunum.
+
+% The clock is similar to before
+% [{Name, Time}]
+% Time is of the form [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
+% So we have
+% [{ringo, [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]}]
+% i.e. a list of all the most recent lists we have gotten from each node
+% NOPE
+% The clock should reflect what messages we have seen from each of the nodes.
+% Is this not exactly what we have done in the Lamport clock solution?
+% SO, the clock is the same as before:
+% [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
+
+The only difference is that we implement the vector clock so that it is independent from how many nodes we have in the system.
+

@@ -85,12 +85,10 @@ rLeq([{Name, TimeToCheck} | RestOfTimeToCheckTuples], BaseTimeTuples) ->
       end
 end.
 
-% The clock is similar to before
-% [{Name, Time}]
-% Time is of the form [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
-% So we have
-% [{ringo, [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]}]
-% i.e. a list of all the most recent lists we have gotten from each node
+% The clock should reflect what messages we have seen from each of the nodes.
+% Is this not exactly what we have done in the Lamport clock solution?
+% The clock is the same as before:
+% [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
 
 % We implement the vector clock so that it is independent from how many nodes we have in the system.
 % The initial clock will thus reflect that we have seen no messages at all.
@@ -100,14 +98,14 @@ clock(_) ->
 % Return a clock that has been updated given that we have received a log message from a node at a given time
 update(From, Time, Clock) ->
   % Find the sender (that we are updating) in the vector time he just sent us
-  {SenderName, SenderIncomingTime} = lists:keyfind(From, 1, Time), % TODO Why the f?
+  {_, SenderIncomingTime} = lists:keyfind(From, 1, Time),
   case lists:keyfind(From, 1, Clock) of
     {From, _} ->
       % We found the sender (that we are updating) in our Clock, update him
-      lists:keyreplace(From, 1, Clock, {From, Time});
+      lists:keyreplace(From, 1, Clock, {From, SenderIncomingTime});
     false ->
       % We did not find the sender (that we are updating) in our Clock, add him
-      [{From, Time} | Clock]
+      [{From, SenderIncomingTime} | Clock]
 end.
 
 %----------------------------------------------------------------------
