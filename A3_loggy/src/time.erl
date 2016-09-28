@@ -59,7 +59,7 @@ timeLessThanOrEqualToAllClockTimes(_, []) ->
 timeLessThanOrEqualToAllClockTimes(Time, Clock) ->
   [FirstClockTimeTuple | RestOfClockTimeTuples] = Clock,
   {_,FirstClockTime} = FirstClockTimeTuple,
-  LessThanOrEqual = leq(Time, FirstClockTime),
+  LessThanOrEqual = leq(Time-1, FirstClockTime), % Can log time 12 when I have received time 11 from all -> (12-1) <= 11
   if
     LessThanOrEqual ->
       % Time is less than or equal to this clock time, moving on to the next one
