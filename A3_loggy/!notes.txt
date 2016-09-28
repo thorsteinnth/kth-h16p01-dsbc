@@ -188,3 +188,4 @@ Fannar er með vector klukku í loggernum sem er bara á sama formi og vector kl
 
 The only difference is that we implement the vector clock so that it is independent from how many nodes we have in the system.
 
+
