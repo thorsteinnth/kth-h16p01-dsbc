@@ -10,10 +10,11 @@
 -author("tts").
 
 %% API
--export([start/1, stop/1, testQueue/0, testLogSafeLogRequestsFromQueue/0, testPrintQueue/0]).
+-export([start/1, stop/1,
+  testQueue/0, testLogSafeLogRequestsFromQueue/0]).
 
 % The logger should have a clock that keeps track of the timestamps of the last messages seen from each of the workers.
-% It should also have a hold-back queue where it keeps log messages that are still no safe to print.
+% It should also have a hold-back queue where it keeps log messages that are still not safe to print.
 % When a new log message arrives it should update the clock, add the message to the hold-back queue and then go through
 % the queue to find messages that are now safe to print.
 
@@ -24,18 +25,25 @@ stop(Logger) ->
   Logger ! stop.
 
 init(Nodes) ->
+  Queue = newQueue(),
   Clock = time:clock(Nodes),
-  loop(Clock).
+  loop(Queue, Clock).
 
-loop(Clock) ->
+loop(Queue, Clock) ->
   %printClock(Clock),
   receive
     {log, From, Time, Msg} ->
       % Update entry in clock with new time
       NewClock = time:update(From, Time, Clock),
-      %log(From, Time, Msg),
-      loop(NewClock);
+      % Add message to queue
+      NewQueue = addLogRequestToQueueAndSort({log, From, Time, Msg}, Queue),
+      % Log safe messages from queue
+      NewAndUpdatedQueue = logSafeLogRequestsFromQueue(NewQueue, NewClock),
+      loop(NewAndUpdatedQueue, NewClock);
     stop ->
+      io:format("Stopping logger, will log remaining queue~n", []),
+      printQueue(Queue),
+      logMessagesInQueue(Queue),
       ok
   end.
 
@@ -104,6 +112,16 @@ isLogRequestSafe(LogRequest, Clock) ->
   % LogRequests are of the form {log, From, Time, Msg}
   {log, _, Time, _} = LogRequest,
   time:safe(Time, Clock).
+
+% Log messages in queue (no matter if they are safe or not)
+% Return an empty queue (we have logged all messages in the queue)
+logMessagesInQueue([]) ->
+  [];
+logMessagesInQueue(Queue) ->
+  [FirstElement | RestOfElements] = Queue,
+  {log, From, Time, Msg} = FirstElement,
+  log(From, Time, Msg),
+  logMessagesInQueue(RestOfElements).
 
 printClock(Clock) ->
   io:format("Clock: ~p~n", [Clock]).
