@@ -118,4 +118,10 @@ for another message
 -> Some messages will never be logged
 -> OK to print the rest of the hold back queue þegar maður drepur loggerinn?
 
+---------------------------------
+
+Er að lenda í massífu veseni við að smíða lista af logged LogRequests í sama falli og ég er að logga ...
+Búa til lista yfir þau sem eru logguð, þegar það er verið að logga þau,
+eða remove-a logguðu úr spes lista þegar ég er að logga þau.
+Enda með að henda þessu í tvö föll.
 
