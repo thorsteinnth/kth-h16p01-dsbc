@@ -125,3 +125,23 @@ Búa til lista yfir þau sem eru logguð, þegar það er verið að logga þau,
 eða remove-a logguðu úr spes lista þegar ég er að logga þau.
 Enda með að henda þessu í tvö föll.
 
+---------------------------------
+
+Run after adding lamport clocks:
+
+log: 1334 john {sending,{hello,72}}
+log: 1335 george {received,{hello,92}}
+log: 1335 paul {sending,{hello,87}}
+log: 1336 george {received,{hello,96}}
+log: 1336 john {received,{hello,87}}
+log: 1336 paul {sending,{hello,70}}
+log: 1337 george {received,{hello,72}}
+
+john sends 72 at time 1334 (to george evidently)
+george receives 2 messages in the meantime, george is at 1336 now
+then george receives the message 72 and goes to 1337
+
+The log is ordered by time!
+
+When we stop the logger we still have some messages in the queue
+We just log the remains from the queue one by one (queue is ordered).
