@@ -41,9 +41,14 @@ loop(Queue, Clock) ->
       NewAndUpdatedQueue = logSafeLogRequestsFromQueue(NewQueue, NewClock),
       loop(NewAndUpdatedQueue, NewClock);
     stop ->
-      io:format("Stopping logger, will log remaining queue~n", []),
+      io:format("Stopping logger, will log what is safe in remaining queue. Remaining queue:~n", []),
       printQueue(Queue),
-      logMessagesInQueue(Queue),
+      %logMessagesInQueue(Queue),
+      io:format("Stopping logger, current clock:~n", []),
+      printClock(Clock),
+      NewAndUpdatedQueue = logSafeLogRequestsFromQueue(Queue, Clock),
+      io:format("Stopping logger, remaining queue~n", []),
+      printQueue(NewAndUpdatedQueue),
       ok
   end.
 
