@@ -123,7 +123,8 @@ testMerge() ->
   Time5 = inc(paul, Time4),
   Time6 = inc(george, Time5),
   Time7 = inc(george, Time6),
-  printTime(Time7),
+  Time8 = inc(fannar, Time7),
+  printTime(Time8),
   ExtTime = zero(),
   ExtTime1 = inc(john, ExtTime),
   ExtTime2 = inc(john, ExtTime1),
@@ -131,8 +132,9 @@ testMerge() ->
   ExtTime4 = inc(ringo, ExtTime3),
   ExtTime5 = inc(paul, ExtTime4),
   ExtTime6 = inc(george, ExtTime5),
-  printTime(ExtTime6),
-  MergedTime = merge(Time7, ExtTime6),
+  ExtTime7 = inc(thorsteinn, ExtTime6),
+  printTime(ExtTime7),
+  MergedTime = merge(Time8, ExtTime7),
   printTime(MergedTime).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
