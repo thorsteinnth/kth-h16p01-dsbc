@@ -118,6 +118,28 @@ for another message
 -> Some messages will never be logged
 -> OK to print the rest of the hold back queue þegar maður drepur loggerinn?
 
+EÐA
+
+Should be able to log B (12) when A has sent a log request for message 11.
+Safe to log 12 when (12-1) is less than or equal to 11.
+
+Er þetta frekar að það er safe að logga tíma ef time-1 er less than or equal to all clocktimes?
+
+A er í 10
+Sendir message með 11 til B
+Loggar message 11
+B er í 5
+Fær message með 11 frá A, fer í max(11,5)+1 = 12
+Loggar message 12
+
+Má ekki skrifa message 12 í logginn fyrr en ég er búinn að logga message 11
+Má bara skrifa message þegar 12 er less than or equal to all clock times - s.s. þarf að láta A logga message 12
+(sem er ótengt fyrra message sending atburðinum, og gerist kannski aldrei)
+NOPE
+Má skrifa 12 í logginn þegar það er búið að logga 11, þannig að ég get loggað 12 þegar (12-1) er less than or equal to
+all clocktimes
+% Can log time 12 when I have received time 11 from all -> (12-1) <= 11
+
 ---------------------------------
 
 Er að lenda í massífu veseni við að smíða lista af logged LogRequests í sama falli og ég er að logga ...
