@@ -47,7 +47,7 @@ clock(Nodes) ->
 
 % Return a clock that has been updated given that we have received a log message from a node at a given time
 update(Node, Time, Clock) ->
-  lists:keyreplace(Node, 1, Clock, {Node, Time}). % TODO Does this have to be max+1?
+  lists:keyreplace(Node, 1, Clock, {Node, Time}).
 
 % Is it safe to log an event that happened at a given time, true or false
 safe(Time, Clock) ->

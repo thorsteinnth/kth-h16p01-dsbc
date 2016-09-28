@@ -11,7 +11,7 @@
 
 %% API
 -export([zero/0, inc/2, merge/2, leq/2, clock/1, update/3, safe/2,
-  testInc/0, testMerge/0, testLeq/0]).
+  testInc/0, testMerge/0, testLeq/0, testUpdate/0]).
 
 % Let's represent the vector clock like this:
 % [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
@@ -85,24 +85,32 @@ rLeq([{Name, TimeToCheck} | RestOfTimeToCheckTuples], BaseTimeTuples) ->
       end
 end.
 
-%----------------------------------------------------------------------
+% The clock is similar to before
+% [{Name, Time}]
+% Time is of the form [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
+% So we have
+% [{ringo, [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]}]
+% i.e. a list of all the most recent lists we have gotten from each node
 
-% The logger should have a clock that keeps track of the timestamps of the last messages seen from each of the workers.
-% Return a clock that can keep track of the nodes
-clock(Nodes) ->
-  % Return a list of length length(Nodes) with tuple elements {node, time}, initialized as {node, 0}
-  Clock = lists:foldl(
-    fun(Element, Accumulator) ->
-      lists:append(Accumulator, [{Element, 0}])
-    end,
-    [],
-    Nodes
-  ),
-  Clock.
+% We implement the vector clock so that it is independent from how many nodes we have in the system.
+% The initial clock will thus reflect that we have seen no messages at all.
+clock(_) ->
+  [].
 
 % Return a clock that has been updated given that we have received a log message from a node at a given time
-update(Node, Time, Clock) ->
-  lists:keyreplace(Node, 1, Clock, {Node, Time}). % TODO Does this have to be max+1?
+update(From, Time, Clock) ->
+  % Find the sender (that we are updating) in the vector time he just sent us
+  {SenderName, SenderIncomingTime} = lists:keyfind(From, 1, Time), % TODO Why the f?
+  case lists:keyfind(From, 1, Clock) of
+    {From, _} ->
+      % We found the sender (that we are updating) in our Clock, update him
+      lists:keyreplace(From, 1, Clock, {From, Time});
+    false ->
+      % We did not find the sender (that we are updating) in our Clock, add him
+      [{From, Time} | Clock]
+end.
+
+%----------------------------------------------------------------------
 
 % Is it safe to log an event that happened at a given time, true or false
 safe(Time, Clock) ->
@@ -126,6 +134,9 @@ timeLessThanOrEqualToAllClockTimes(Time, Clock) ->
 
 printTime(Time) ->
   io:format("Time: ~p~n", [Time]).
+
+printClock(Clock) ->
+  io:format("Clock: ~p~n", [Clock]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TESTS
@@ -182,5 +193,17 @@ testLeq() ->
   ExtTime7 = inc(fannar, ExtTime6),
   printTime(ExtTime7),
   leq(Time6, ExtTime7).
+
+testUpdate() ->
+  Clock = clock("whatever"),
+  TimeFromJohn = [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}],
+  Clock1 = update(john, TimeFromJohn, Clock),
+  printClock(Clock1),
+  TimeFromRingo = [{john, 69}, {ringo, 9999}, {paul, 4}, {george, 1}],
+  Clock2 = update(ringo, TimeFromRingo, Clock1),
+  printClock(Clock2),
+  TimeFromJohnUpdated = [{john, 100}, {ringo, 2}, {paul, 4}, {george, 99}],
+  Clock3 = update(john, TimeFromJohnUpdated, Clock2),
+  printClock(Clock3).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
