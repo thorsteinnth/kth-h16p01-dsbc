@@ -11,15 +11,26 @@
 
 %% API
 -export([zero/0, inc/2, merge/2, leq/2, clock/1, update/3, safe/2,
-  testClock/0, testUpdate/0, testSafe/0]).
+  testInc/0]).
 
-% Return an initial Lamport value (could it be 0)
+% Let's represent the vector clock like this:
+% [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
+
+% Return an initial vector clock
 zero() ->
-  0.
+  [].
 
-% Return the time T incremented by one (you will probably ignore the Name but we will use it later)
-inc(Name, T) ->
-  T+1.
+% Return the time T with the entry for Name incremented by one
+inc(Name, Time) ->
+  FoundTuple = lists:keyfind(Name, 1, Time),
+  if
+    FoundTuple == false ->
+      % Entry for Name was not found in Time, let's add it
+      [{Name, 1}|Time];
+    true ->
+      {Name, CurrentTime} = FoundTuple,
+      lists:keyreplace(Name, 1, Time, {Name, CurrentTime+1})
+  end.
 
 % Merge the two Lamport time stamps (i.e. take the maximum value)
 merge(Ti, Tj) ->
@@ -69,27 +80,20 @@ timeLessThanOrEqualToAllClockTimes(Time, Clock) ->
       false
   end.
 
+printTime(Time) ->
+  io:format("Time: ~p~n", [Time]).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TESTS
 
-testClock() ->
-  Nodes = [node1, node2, node3, node4],
-  clock(Nodes).
-
-testUpdate() ->
-  Clock = clock([node1, node2, node3, node4]),
-  update(node3, 90, Clock).
-
-testSafe() ->
-  Clock = clock([node1, node2, node3, node4]),
-  Clock1 = update(node1, 10, Clock),
-  Clock2 = update(node2, 20, Clock1),
-  Clock3 = update(node3, 30, Clock2),
-  Clock4 = update(node4, 40, Clock3),
-  Is9Safe = safe(9, Clock4),
-  Is10Safe = safe(10, Clock4),
-  Is11Safe = safe(11, Clock4),
-  Is50Safe = safe(50, Clock4),
-  io:format("9 safe ~p,~n10 safe ~p,~n11 safe ~p,~n50 safe ~p~n", [Is9Safe, Is10Safe, Is11Safe, Is50Safe]).
+testInc() ->
+  Time = zero(),
+  Time1 = inc(john, Time),
+  Time2 = inc(ringo, Time1),
+  Time3 = inc(paul, Time2),
+  Time4 = inc(george, Time3),
+  Time5 = inc(ringo, Time4),
+  Time6 = inc(ringo, Time5),
+  printTime(Time6).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
