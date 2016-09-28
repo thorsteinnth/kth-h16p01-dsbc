@@ -11,7 +11,7 @@
 
 %% API
 -export([zero/0, inc/2, merge/2, leq/2, clock/1, update/3, safe/2,
-  testInc/0, testMerge/0, testLeq/0, testUpdate/0]).
+  testInc/0, testMerge/0, testLeq/0, testUpdate/0, testSafe/0]).
 
 % Let's represent the vector clock like this:
 % [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}]
@@ -108,27 +108,17 @@ update(From, Time, Clock) ->
       [{From, SenderIncomingTime} | Clock]
 end.
 
-%----------------------------------------------------------------------
+% When is it safe to log [{john, 2}, {paul, 3}]?
+% when you have seen two messages from john and three from paul. If your clock contains entries for both john and paul,
+% and the values 2 and 3 are less than or equal to the corresponding values in the clock
+% then it is safe to log the message.
+% So, if for each entry in Time, you have an entry in Clock and the entry in Time is less than or equal to
+% the entry in the Clock - then it is safe to log the message; have we seen this before?
+% -> just the leq() function!
 
 % Is it safe to log an event that happened at a given time, true or false
 safe(Time, Clock) ->
-  timeLessThanOrEqualToAllClockTimes(Time, Clock).
-
-timeLessThanOrEqualToAllClockTimes(_, []) ->
-  % Made it to the end of the Clock list, so Time is less than or equal to all clock times
-  true;
-timeLessThanOrEqualToAllClockTimes(Time, Clock) ->
-  [FirstClockTimeTuple | RestOfClockTimeTuples] = Clock,
-  {_,FirstClockTime} = FirstClockTimeTuple,
-  LessThanOrEqual = leq(Time-1, FirstClockTime), % Can log time 12 when I have received time 11 from all -> (12-1) <= 11
-  if
-    LessThanOrEqual ->
-      % Time is less than or equal to this clock time, moving on to the next one
-      timeLessThanOrEqualToAllClockTimes(Time, RestOfClockTimeTuples);
-    true ->
-      % Time is greater than this clock time, therefore it is not less than or equal to all clock times
-      false
-  end.
+  leq(Time, Clock).
 
 printTime(Time) ->
   io:format("Time: ~p~n", [Time]).
@@ -203,5 +193,17 @@ testUpdate() ->
   TimeFromJohnUpdated = [{john, 100}, {ringo, 2}, {paul, 4}, {george, 99}],
   Clock3 = update(john, TimeFromJohnUpdated, Clock2),
   printClock(Clock3).
+
+testSafe() ->
+  Clock = clock("whatever"),
+  TimeFromJohn = [{john, 3}, {ringo, 2}, {paul, 4}, {george, 1}],
+  Clock1 = update(john, TimeFromJohn, Clock),
+  TimeFromRingo = [{john, 69}, {ringo, 2}, {paul, 4}, {george, 1}],
+  Clock2 = update(ringo, TimeFromRingo, Clock1),
+  TimeFromJohnUpdated = [{john, 4}, {ringo, 2}, {paul, 4}, {george, 99}],
+  Clock3 = update(john, TimeFromJohnUpdated, Clock2),
+  printClock(Clock3),
+  TestTime = [{john, 4},{ringo, 2},{thorsteinn,1}],
+  safe(TestTime, Clock3).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
