@@ -55,8 +55,10 @@ addLogRequestToQueueAndSort(LogRequest, Queue) ->
   SortedQueue.
 
 % Go through queue and and log messages that are safe to print
+% Return new queue where safe log requests have been removed.
 logSafeLogRequestsFromQueue(Queue, Clock) ->
-  logLogRequestFromQueueIfSafe(Queue, Clock).
+  logLogRequestFromQueueIfSafe(Queue, Clock),
+  removeSafeLogRequestsFromQueue(Queue, Clock).
 
 logLogRequestFromQueueIfSafe([], _) ->
   % We have logged all messages we can log
@@ -79,6 +81,29 @@ logLogRequestFromQueueIfSafe(RemainingQueue, Clock) ->
       logLogRequestFromQueueIfSafe([], Clock)
   end,
   ok.
+
+% NOTE: Was having trouble building a list or removing from a list in the logLogRequestFromQueueIfSafe
+% so I split this into two different functions instead
+removeSafeLogRequestsFromQueue(Queue, Clock) ->
+  UpdatedQueue = lists:foldl(
+    fun(LogRequestElement, Accumulator) ->
+      LogRequestIsSafe = isLogRequestSafe(LogRequestElement, Clock),
+      if
+        LogRequestIsSafe ->
+          Accumulator;
+        true ->
+          lists:append(Accumulator, [LogRequestElement])
+      end
+    end,
+    [],
+    Queue
+  ),
+  UpdatedQueue.
+
+isLogRequestSafe(LogRequest, Clock) ->
+  % LogRequests are of the form {log, From, Time, Msg}
+  {log, _, Time, _} = LogRequest,
+  time:safe(Time, Clock).
 
 printClock(Clock) ->
   io:format("Clock: ~p~n", [Clock]).
@@ -111,6 +136,7 @@ testLogSafeLogRequestsFromQueue() ->
   Queue2 = addLogRequestToQueueAndSort({log, paul, 2, {sending, {hello, 9999}}}, Queue1),
   Queue3 = addLogRequestToQueueAndSort({log, ringo, 3, {sending, {hello, 9999}}}, Queue2),
   Queue4 = addLogRequestToQueueAndSort({log, george, 4, {sending, {hello, 9999}}}, Queue3),
-  logSafeLogRequestsFromQueue(Queue4, Clock4).
+  UpdatedQueue = logSafeLogRequestsFromQueue(Queue4, Clock4),
+  io:format("Updated queue: ~p~n", [UpdatedQueue]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
