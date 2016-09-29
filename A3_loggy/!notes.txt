@@ -251,3 +251,52 @@ WILL LOG SAFE REQUEST, CURRENT CLOCK:
 Clock: [{john,1},{ringo,1}]
 log: [{ringo,1},{john,1}] ringo {received,{hello,57}}
 
+If you run tests using the Lamport clock and the vector clock you might see some differences.
+You could augment your code of the logger and do a print out every time it queues a message in the hold back queue.
+Is there a difference?
+Þetta meikar ekki sense ... hann queuear alltaf áður en hann prentar. Öll messages fara í queue.
+Betra er að prenta út lengdina á queueinu
+
+MaxLengthOfQueue test:
+test:run(10,10).
+
+Lamport (logger):
+34
+35
+36
+33
+33
+43
+46
+34
+37
+40
+Average: 37.1
+
+Vector (logger_vect):
+6
+6
+6
+7
+7
+6
+6
+6
+6
+6
+Average: 6.2
+
+Why does this happen?
+In the Lamport clock case I have to wait for the timestamps of all workers to become equal to the timestamp on the message
+I want to log, even though they may be completely causally independent from the message we are trying to log.
+In the vector clock case we log a message when the time stamp of the message is less than or equal to that of the clock.
+It is checking the timestamps of all the processes, like in the Lamport clock case, but the difference is that every
+worker has a more up to date view of the entire system. If worker A sends a message to worker B, and worker B then sends
+a message to worker C, worker C will know about the message sent from A to B.
+When worker C then tries to log a message, the message from A to B will be included in the time stamp of the message
+that it is trying to log. The logger then uses this timestamp to figure out if it is safe to log the message or not.
+It can then say that it is safe to log it if the clock time for A is for example 10, and the clock time for B is for
+example 15, but the clock time for C (the worker that is trying to log a message) is 999.
+It can then log the message much sooner, than if it had to wait for the time stamps of A and B to also reach 999.
+
+
