@@ -313,16 +313,30 @@ Skýrsludót um Lamport clocks
 Run some tests and try to find log messages that are printed in the wrong order.
 How do you know that they are printed in the wrong order? Experiment with the jitter and see if you can increase or
 decrease (eliminate?) the number of entries that are wrong.
+-------- DONE
+mixaði ekkert í jitterinu. Jitter segir til um hversu lengi worker bíður eftir að hafa sent message til að
+senda annað message á loggerinn. Ef við minnkum jitterið þá myndu messages væntanlega loggast í réttari röð, þar sem
+meiri líkur eru á því að sendmessage logrequestið komist til loggersins áður en að receivemessage logrequestið kemur
+þangað.
 
 After adding Lamport time ...
 Do some tests and identify situations where log entries are printed in the wrong order.
 How do you identify messages that are in the wrong order?
 What is always true and what is sometimes true? How do you play it safe?
+--------- DONE
+yeah yeah sleppti þessu
 
 You are also to write a report that describes your time module
 (please don’t give me a page of source code, describe in your own words).
+----------- DONE
+
 Did you detected entries out of order in the first implementation and if so, how did you detect them.
+----------- DONE
+
 What is it that the final log tells us? Did events happen in the order presented by the log?
+----------- DONE
+
 How large will the hold back queue be, make some tests and try to find the maximum number of entries.
+----------- DONE
 
 
