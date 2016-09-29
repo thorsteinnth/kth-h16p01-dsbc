@@ -188,4 +188,66 @@ Fannar er með vector klukku í loggernum sem er bara á sama formi og vector kl
 
 The only difference is that we implement the vector clock so that it is independent from how many nodes we have in the system.
 
+vector test run
+
+Am logging all messages now. BUT having issues with ordering of logging
+
+Logging received before send!
+I log safe requests from queue everytime I receive a new logrequest, and after updating the clock
+So I should
+
+63> test_vect:run(500,500).
+Clock: [{john,1},{ringo,1}]
+log: [{ringo,1},{john,1}] ringo {received,{hello,57}}
+
+Clock: [{john,1},{ringo,1}]
+log: [{john,1}] john {sending,{hello,57}}
+
+Clock: [{paul,1},{john,2},{ringo,1}]
+log: [{paul,1}] paul {sending,{hello,68}}
+Clock: [{paul,2},{john,2},{ringo,2}]
+log: [{ringo,2},{john,2}] john {received,{hello,77}}
+Clock: [{paul,2},{john,2},{ringo,2}]
+log: [{ringo,2},{john,1}] ringo {sending,{hello,77}}
+Clock: [{paul,2},{john,2},{ringo,3}]
+log: [{paul,1},{ringo,3},{john,1}] ringo {received,{hello,68}}
+
+67> test_vect:run(500,500).
+WILL TRY TO LOG SAFE REQUEST, CURRENT CLOCK AND QUEUE:
+Clock: [{ringo,1}]
+Queue: [{log,ringo,[{ringo,1},{john,1}],{received,{hello,57}}}]
+WILL TRY TO LOG SAFE REQUEST, CURRENT CLOCK AND QUEUE:
+Clock: [{john,1},{ringo,1}]
+Queue: [{log,ringo,[{ringo,1},{john,1}],{received,{hello,57}}},
+        {log,john,[{john,1}],{sending,{hello,57}}}]
+WILL LOG SAFE REQUEST, CURRENT CLOCK:
+Clock: [{john,1},{ringo,1}]
+log: [{ringo,1},{john,1}] ringo {received,{hello,57}}
+WILL LOG SAFE REQUEST, CURRENT CLOCK:
+Clock: [{john,1},{ringo,1}]
+log: [{john,1}] john {sending,{hello,57}}
+
+Can see that in the beginning we receive a received log request from ringo,
+can't log that of course.
+Then when we receive the sending log request from john, we can log both received and sending log request.
+HOWEVER since the queue is not ordered, and the received log request is before the sending log request,
+the received log request gets logged first
+-> the queue needs to be ordered by timestamp!
+
+Added sorting by timestamp, WORKING NOW
+
+73> test_vect:run(500,500).
+WILL TRY TO LOG SAFE REQUEST, CURRENT CLOCK AND QUEUE:
+Clock: [{ringo,1}]
+Queue: [{log,ringo,[{ringo,1},{john,1}],{received,{hello,57}}}]
+WILL TRY TO LOG SAFE REQUEST, CURRENT CLOCK AND QUEUE:
+Clock: [{john,1},{ringo,1}]
+Queue: [{log,john,[{john,1}],{sending,{hello,57}}},
+        {log,ringo,[{ringo,1},{john,1}],{received,{hello,57}}}]
+WILL LOG SAFE REQUEST, CURRENT CLOCK:
+Clock: [{john,1},{ringo,1}]
+log: [{john,1}] john {sending,{hello,57}}
+WILL LOG SAFE REQUEST, CURRENT CLOCK:
+Clock: [{john,1},{ringo,1}]
+log: [{ringo,1},{john,1}] ringo {received,{hello,57}}
 
