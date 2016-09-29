@@ -299,4 +299,30 @@ It can then say that it is safe to log it if the clock time for A is for example
 example 15, but the clock time for C (the worker that is trying to log a message) is 999.
 It can then log the message much sooner, than if it had to wait for the time stamps of A and B to also reach 999.
 
+Skrifa um muninn á Lamport clocs og vector clocks ... inverse of clock condition holds ... etc
+
+Gæti líka tekið test með overlapping worker groups ... loggerinn getur höndlað það og prentað út skv happened-before
+order.
+
+NÓG KOMIÐ UM VECTOR CLOCKS
+
+-----------------------------------------
+
+Skýrsludót um Lamport clocks
+
+Run some tests and try to find log messages that are printed in the wrong order.
+How do you know that they are printed in the wrong order? Experiment with the jitter and see if you can increase or
+decrease (eliminate?) the number of entries that are wrong.
+
+After adding Lamport time ...
+Do some tests and identify situations where log entries are printed in the wrong order.
+How do you identify messages that are in the wrong order?
+What is always true and what is sometimes true? How do you play it safe?
+
+You are also to write a report that describes your time module
+(please don’t give me a page of source code, describe in your own words).
+Did you detected entries out of order in the first implementation and if so, how did you detect them.
+What is it that the final log tells us? Did events happen in the order presented by the log?
+How large will the hold back queue be, make some tests and try to find the maximum number of entries.
+
 
