@@ -28,9 +28,9 @@ init(Nodes) ->
   Queue = newQueue(),
   %Clock = time:clock(Nodes),
   Clock = vect:clock(Nodes),
-  loop(Queue, Clock).
+  loop(Queue, Clock, 0).
 
-loop(Queue, Clock) ->
+loop(Queue, Clock, MaxLengthOfQueue) ->
   %printClock(Clock),
   receive
     {log, From, Time, Msg} ->
@@ -39,12 +39,13 @@ loop(Queue, Clock) ->
       NewClock = vect:update(From, Time, Clock),
       % Add message to queue
       NewQueue = addLogRequestToQueueAndSort({log, From, Time, Msg}, Queue),
+      NewMaxLengthOfQueue = erlang:max(MaxLengthOfQueue, length(NewQueue)),
       % Log safe messages from queue
       %io:format("WILL TRY TO LOG SAFE REQUEST, CURRENT CLOCK AND QUEUE:~n", []),
       %printClock(NewClock),
       %printQueue(NewQueue),
       NewAndUpdatedQueue = logSafeLogRequestsFromQueue(NewQueue, NewClock),
-      loop(NewAndUpdatedQueue, NewClock);
+      loop(NewAndUpdatedQueue, NewClock, NewMaxLengthOfQueue);
     stop ->
       io:format("Stopping logger, will log what is safe in remaining queue. Remaining queue:~n", []),
       printQueue(Queue),
@@ -54,6 +55,7 @@ loop(Queue, Clock) ->
       NewAndUpdatedQueue = logSafeLogRequestsFromQueue(Queue, Clock),
       io:format("Stopping logger, remaining queue~n", []),
       printQueue(NewAndUpdatedQueue),
+      io:format("Stopping logger, max length of queue: ~p~n", [MaxLengthOfQueue]),
       ok
   end.
 
