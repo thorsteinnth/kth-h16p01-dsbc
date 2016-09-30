@@ -1,0 +1,26 @@
+Group membership service
+Atomic multicast
+
+Nodes with leader
+Send message to leader - leader does basic multicast to all - if leader dies elect new one
+
+Node join - send request to any node - leader decides when to include it and send a new view of system to all nodes
+
+Application layer has a group process that communication goes through - no views go to the application layer
+
+View synchrony
+"messages are delivered in a view"
+For all messages in a view we guarantee:
+- FIFO - in the order they were sent by the sending node
+- Total order - all nodes see the same sequence
+- Reliable - If a correct node delivers a message all correct nodes deliver the message
+
+Correct node:
+Does not fail during a view, i.e. it survives to install the next view
+(a node will fail only by crashing and will then never be heard from again)
+
+NOTE:
+Not guaranteed that a send message is delivered. Async sending and no ACKs.
+If failing leader then a sent message might disappear.
+
+Leader:
