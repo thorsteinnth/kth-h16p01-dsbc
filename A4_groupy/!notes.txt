@@ -24,3 +24,39 @@ Not guaranteed that a send message is delivered. Async sending and no ACKs.
 If failing leader then a sent message might disappear.
 
 Leader:
+Node is either leader or slave
+One leader (hopefully)
+All slaves forward messages to leader, leader tags it with seqnum, multicast it to all other nodes
+Leader can also accept messages from its own master - the application layer
+NOTE: Application layer does not know if its group is a leader or a slave
+
+Slave:
+Receive messages from application layer and forward them to the leader.
+Receive messages from leader and forward them to the application layer.
+Have to be able to deal with it if the leader fails.
+
+Election:
+All slaves have same list of peers.
+First node in the list is the leader.
+If I am the leader I resend the last message I received.
+Slaves monitor the new leader.
+
+Application layer:
+Create a group process
+Contact any other application layer process it knows of
+- Request to join the group, send the PID of its own group process
+- Wait for view delivery, containing the peer processes in the group
+No guarantee that the join request makes it - the leader might be dead, or the request might not be delivered to the
+leader
+- application layer process just timeouts and aborts the attempt
+After joining, must get current state of group (color)
+Sends request to obtain state to atomic multicast layer, and waits to receive the message from itself
+- now I know that the other processes see this message and respond by sending the state, also using the multicast layer
+NOTE:
+state message might not be the first message we receive
+state change messages might be in the pipeline
+after receiving the state message these state change messages must be applied before the process is up and running
+simply let any state change messages remain in the queue an choose to handle state message first, before
+state change messages (using erlang's implicit deferral)
+
+
