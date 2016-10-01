@@ -10,7 +10,7 @@
 -author("tts").
 
 %% API
--export([]).
+-export([start/1, start/2, leader/4, slave/5]).
 
 % Initialize a process that is the first node in a group
 % Give it an empty list of peers and let it know that its master is the only node in the group
@@ -91,3 +91,13 @@ slave(Id, Master, Leader, Slaves, Group) ->
     stop ->
       ok
   end.
+
+% Send a message to each process in a list
+bcast(SenderId, Message, Recipients) ->
+  % TODO What to do with sender ID?
+  lists:foreach(
+    fun(Recipient) ->
+      Recipient ! Message
+    end,
+    Recipients
+  ).
