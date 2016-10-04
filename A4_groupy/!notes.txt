@@ -59,4 +59,17 @@ after receiving the state message these state change messages must be applied be
 simply let any state change messages remain in the queue an choose to handle state message first, before
 state change messages (using erlang's implicit deferral)
 
+TODO:
+One thing that we have to pay attention to is what we should do if, as a slave,
+receive the view message from the new leader before we have noticed that the old leader is dead.
+Should we refuse to handle view messages unless we have seen the Down message from the leader or should we happily
+receive accept the new view and then ignore trailing Down messages.
+- Right now we just monitor a new leader when we get the Down message
 
+gms1 testing:
+After killing leader they just stop changing colors. They try to multicast a color change, do that by sending a message
+to the leader, but the leader is dead. So that message never goes anywhere.
+
+gms2 testing:
+After killing the leader, the next node becomes the leader. The remaining nodes keep changing colors, and stay
+in sync.
