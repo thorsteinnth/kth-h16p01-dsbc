@@ -12,22 +12,29 @@
 %% API
 -export([start/1, start/2, leader/4, slave/5]).
 
+% Timeout while waiting for a join reply (invitation)
 -define(timeout, 1000).
+% Risk of crashing. A value of 100 means that a process will crash in average once in a hundred attempts.
+-define(arghh, 50).
 
 % Initialize a process that is the first node in a group
 % Give it an empty list of peers and let it know that its master is the only node in the group
 % (since it is the only node in the group it will of course be the leader of the group)
 start(Id) ->
+  Rnd = random:uniform(1000),
   Self = self(),
-  {ok, spawn_link(fun()-> init(Id, Self) end)}.
-init(Id, Master) ->
+  {ok, spawn_link(fun()-> init(Id, Rnd, Self) end)}.
+init(Id, Rnd, Master) ->
+  random:seed(Rnd, Rnd, Rnd), % Seed random num gen so not all processes crash at same time
   leader(Id, Master, [], [Master]).
 
 % Initialize a node that should join an existing group.
 start(Id, Grp) ->
+  Rnd = random:uniform(1000),
   Self = self(),
-  {ok, spawn_link(fun()-> init(Id, Grp, Self) end)}.
-init(Id, Grp, Master) ->
+  {ok, spawn_link(fun()-> init(Id, Rnd, Grp, Self) end)}.
+init(Id, Rnd, Grp, Master) ->
+  random:seed(Rnd, Rnd, Rnd), % Seed random num gen so not all processes crash at same time
   Self = self(),
   % Send a join message to a node in the group and wait for an invitation
   % Initial state of node will be a slave
@@ -106,14 +113,34 @@ slave(Id, Master, Leader, Slaves, Group) ->
   end.
 
 % Send a message to each process in a list
-bcast(SenderId, Message, Recipients) ->
-  % TODO What to do with sender ID?
+%bcast(SenderId, Message, Recipients) ->
+%  % TODO What to do with sender ID?
+%  lists:foreach(
+%    fun(Recipient) ->
+%      Recipient ! Message
+%    end,
+%    Recipients
+%  ).
+
+% Send a message to each process in a list
+% May crash after sending the message
+bcast(Id, Msg, Nodes) ->
   lists:foreach(
-    fun(Recipient) ->
-      Recipient ! Message
-    end,
-    Recipients
+    fun(Node) ->
+      Node ! Msg,
+      crash(Id)
+    end
+    ,
+    Nodes
   ).
+
+crash(Id) ->
+  case random:uniform(?arghh) of
+    ?arghh ->
+      io:format("leader ~w: crash~n", [Id]),
+      exit(no_luck);
+    _ -> ok
+  end.
 
 % Elect new leader
 election(Id, Master, Slaves, [_|Group]) ->
