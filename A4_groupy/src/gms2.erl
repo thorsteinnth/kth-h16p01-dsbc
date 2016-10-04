@@ -12,6 +12,8 @@
 %% API
 -export([start/1, start/2, leader/4, slave/5]).
 
+-define(timeout, 1000).
+
 % Initialize a process that is the first node in a group
 % Give it an empty list of peers and let it know that its master is the only node in the group
 % (since it is the only node in the group it will of course be the leader of the group)
@@ -33,8 +35,14 @@ init(Id, Grp, Master) ->
   receive
     {view, [Leader|Slaves], Group} ->
       % Invitation received
+      % Set up a monitor for the leader
+      erlang:monitor(process, Leader),
+      % Notify application layer master
       Master ! {view, Group},
       slave(Id, Master, Leader, Slaves, Group)
+  after ?timeout ->
+    % We didn't receive an invitation, leader may be dead
+    Master ! {error, "no reply from leader"}
   end.
 
 % Leader process
@@ -53,7 +61,7 @@ leader(Id, Master, Slaves, Group) ->
     {join, Wrk, Peer} ->
       % Message, from a peer or the master, that is a request from a node to join the group.
       % The message contains both the process identifier of the application layer, Wrk, and the
-      % process identifier of its group process.
+      % process identifier of its group process, Peer.
       Slaves2 = lists:append(Slaves, [Peer]),
       Group2 = lists:append(Group, [Wrk]),
       bcast(Id, {view, [self()|Slaves2], Group2}, Slaves2),
@@ -86,8 +94,13 @@ slave(Id, Master, Leader, Slaves, Group) ->
     {view, [Leader|Slaves2], Group2} ->
       % {view, Peers, Group}
       % a multicasted view from the leader. A view is delivered to the master process.
+      % TODO Just received a new view from the leader, should I set up a monitor on it?
       Master ! {view, Group2},
       slave(Id, Master, Leader, Slaves2, Group2);
+    {'DOWN', _Ref, process, Leader, _Reason} ->
+      % Message received from monitor, leader is dead
+      % Enter election state
+      election(Id, Master, Slaves, Group);
     stop ->
       ok
   end.
@@ -101,3 +114,31 @@ bcast(SenderId, Message, Recipients) ->
     end,
     Recipients
   ).
+
+% Elect new leader
+election(Id, Master, Slaves, [_|Group]) ->
+  Self = self(),
+  case Slaves of
+    [Self|Rest] ->
+      % I am the first node in the list of slaves, I should be the new leader
+      % Broadcast to all other slaves the new view (with me as the first node in the slave list -> leader)
+      % Note that we removed the first application layer process from Group (the leader) before sending it here
+      bcast(Id, {view, Slaves, Group}, Rest),
+      Master ! {view, Group},
+      printLeader(Id, myself),
+      leader(Id, Master, Rest, Group);
+    [Leader|Rest] ->
+      % I am not the first node in the slave list, therefore I am not the new leader
+      % Set up a monitor on the new leader
+      erlang:monitor(process, Leader),
+      printLeader(Id, Leader),
+      slave(Id, Master, Leader, Rest, Group)
+  end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TESTS
+
+printLeader(MyId, Leader) ->
+  io:format("[~p] LEADER IS: ~p~n", [MyId, Leader]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%

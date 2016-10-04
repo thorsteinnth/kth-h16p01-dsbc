@@ -44,6 +44,38 @@ sleep(Wrk, Sleep) ->
 stop(Wrk) ->
     Wrk ! {send, stop}.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Added by me
+kill(Wrk) ->
+  Wrk ! stop.
+
+test_gms1() ->
+  W1 = test:first(1, gms1, 1000),
+  W2 = test:add(2, gms1, W1, 1000),
+  W3 = test:add(3, gms1, W1, 1000),
+  io:format("Will kill leader (W1) in 10 sec~n", []),
+  timer:sleep(10000),
+  test:kill(W1),
+  io:format("Will kill all others in 30 sec~n", []),
+  timer:sleep(30000),
+  test:kill(W2),
+  test:kill(W3).
+
+test_gms2() ->
+  W1 = test:first(1, gms2, 1000),
+  W2 = test:add(2, gms2, W1, 1000),
+  W3 = test:add(3, gms2, W1, 1000),
+  io:format("Will kill leader (W1) in 10 sec~n", []),
+  timer:sleep(10000),
+  test:kill(W1),
+  io:format("Will kill all others in 30 sec~n", []),
+  timer:sleep(30000),
+  test:kill(W2),
+  test:kill(W3).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 			  
 
