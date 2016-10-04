@@ -73,3 +73,10 @@ to the leader, but the leader is dead. So that message never goes anywhere.
 gms2 testing:
 After killing the leader, the next node becomes the leader. The remaining nodes keep changing colors, and stay
 in sync.
+
+missing messages testing:
+introduced random crash. Am supposed to get the state of the workers out of sync.
+What is happening?
+Am getting them out of sync. Got that by having 4 workers.
+Something to do with the fact that they are just starting to monitor a new leader when they get the Down message.
+Don't actually start monitoring a new leader when they get the view message.
