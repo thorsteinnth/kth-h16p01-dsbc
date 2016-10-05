@@ -128,6 +128,7 @@ bcast(Id, Msg, Nodes) ->
   lists:foreach(
     fun(Node) ->
       Node ! Msg,
+      %io:format("[~p][~p] LEADER SENT MESSAGE TO NODE: ~p, MESSAGE: ~p~n", [Id, self(), Node, Msg]),
       crash(Id)
     end
     ,
@@ -166,6 +167,6 @@ election(Id, Master, Slaves, [_|Group]) ->
 % TESTS
 
 printLeader(MyId, Leader) ->
-  io:format("[~p] LEADER IS: ~p~n", [MyId, Leader]).
+  io:format("[~p][~p] LEADER IS: ~p~n", [MyId, self(), Leader]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
