@@ -19,7 +19,7 @@
 %-define(arghh, 200). % Useful for testing the running group (joins after deaths)
 
 % Let's keep sent-but-not-acked messages in an OutgoingQueue
-% a list of {RecipientPid, SeqNum}
+% a list of {{RecipientPid, SeqNum}, Message}
 
 % Initialize a process that is the first node in a group
 % Give it an empty list of peers and let it know that its master is the only node in the group
@@ -191,7 +191,7 @@ sendAckToLeader(Leader, NToAck) ->
 
 % Send a message to each process in a list
 % May crash after sending the message
-% Return new OutgoingQueue, list of {RecipientPid, SeqNum}, where all outgoing messages have been added
+% Return new OutgoingQueue, list of {{RecipientPid, SeqNum}, Message}, where all outgoing messages have been added
 bcast(Id, Msg, Nodes, OutgoingQueue) ->
   NewOutgoingQueue = lists:foldl(
     fun(Node, Accumulator) ->
@@ -200,10 +200,10 @@ bcast(Id, Msg, Nodes, OutgoingQueue) ->
       case Msg of
         {_, N, _} ->
           % {msg, N, Msg}
-          NewAccumulator = lists:append(Accumulator, [{Node, N}]);
+          NewAccumulator = lists:append(Accumulator, [{{Node, N}, Msg}]);
         {_, N, _, _} ->
           % {view, N, Peers, Group}
-          NewAccumulator = lists:append(Accumulator, [{Node, N}]);
+          NewAccumulator = lists:append(Accumulator, [{{Node, N}, Msg}]);
         _ ->
           io:format("gms4:bcast/4 - Add message to OutgoingQueue error - unknown msg format", []),
           NewAccumulator = Accumulator
@@ -228,8 +228,8 @@ crash(Id) ->
   end.
 
 removeAckedMessageFromOutgoingQueue(AckingPid, AckedSeqNum, OutgoingQueue) ->
-  % The queue is of the form {RecipientPid, SeqNum}
-  lists:delete({AckingPid, AckedSeqNum}, OutgoingQueue).
+  % The queue is of the form {{RecipientPid, SeqNum}, Message}
+  lists:keydelete({AckingPid, AckedSeqNum}, 1, OutgoingQueue).
 
 % Elect new leader
 % N: expected sequence number of the next message
