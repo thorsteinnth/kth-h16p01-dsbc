@@ -104,6 +104,20 @@ test_gms3_random_crash() ->
   test:kill(W5),
   test:kill(W6).
 
+test_gms3_create_group(NumberOfNodes) ->
+  Wrk = more(NumberOfNodes, gms3, 1000),
+  Wrk.
+
+% TEST SCRIPT FOR ROLLING GROUP
+% W1 = test:first(1, gms3, 1000)
+% W2 = test:add(2, gms3, W1, 1000)
+% W3 = test:add(3, gms3, W1, 1000)
+% W4 = test:add(4, gms3, W1, 1000)
+% W5 = test:add(5, gms3, W1, 1000)
+% W6 = test:add(6, gms3, W1, 1000)
+
+% Þarf að senda svo join request (add) á einhverja node sem er ennþá lifandi
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

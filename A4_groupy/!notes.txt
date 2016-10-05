@@ -269,11 +269,17 @@ leader 3: crash
 
 OK NOW.
 
+-----------------------------------------------------------------------------------------------------------------------
 
+Run some experiments and create a group spanning several computers, if available.
+Can we keep a group rolling by adding more nodes as existing nodes die?
 
-
-
-
+Yes I can.
+Have to have a reference to a node that is alive.
+Best to test this by putting the arghh value to 200 so they don't crash to often.
+Can then do e.g.
+W6 = test:add(6, gms3, W5, 1000)
+Where W5 has to be alive, to add it to the group.
 
 
 
