@@ -163,3 +163,50 @@ Node 198 is now missing the {change,20} message, so it will be out of sync with 
 (the leader).
 
 -----------------------------------------------------------------------------------------------------------------------
+
+Reliable multicast to fix the missing messages problem.
+
+Vanilla reliable multicaster (process that forwards all messages before delivering them to a higher layer) would be
+expensive.
+
+Keep copy of last message from leader.
+If we detect the death of the leader then some nodes may never have gotten this message (if he was in the middle
+of the basic multicast procedure).
+Assume:
+- Messages are reliably delivered
+-> if leader sends message to A and then B, if B receives the message, then also A will receive it (the leader can't have
+died before sending to A, it must have been able to send there since it was able to send to B, note that the only way we
+lose messages is if the leader dies, because of the reliable delivery condition)
+
+Leader is sending messages out in the order that the slaves are in in the list of peers.
+So, if anyone receives a message before the leader crashes while multicasting, it is guaranteed that the next
+leader has received the message (he is the first node in the list of peers).
+(either him and no one else, or him and an arbitrary number of other nodes).
+-> only the next leader needs to resend the message
+
+This way a node can receive duplicate messages
+New leader + node X received message before the leader dying
+New leader resends message to all nodes
+Node X receives a duplicate
+-> Number all messages and only deliver new messages to the application layer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
