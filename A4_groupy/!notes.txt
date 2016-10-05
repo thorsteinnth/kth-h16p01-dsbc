@@ -59,6 +59,8 @@ after receiving the state message these state change messages must be applied be
 simply let any state change messages remain in the queue an choose to handle state message first, before
 state change messages (using erlang's implicit deferral)
 
+-----------------------------------------------------------------------------------------------------------------------
+
 TODO:
 One thing that we have to pay attention to is what we should do if, as a slave,
 receive the view message from the new leader before we have noticed that the old leader is dead.
@@ -74,9 +76,90 @@ gms2 testing:
 After killing the leader, the next node becomes the leader. The remaining nodes keep changing colors, and stay
 in sync.
 
+-----------------------------------------------------------------------------------------------------------------------
+
 missing messages testing:
 introduced random crash. Am supposed to get the state of the workers out of sync.
 What is happening?
 Am getting them out of sync. Got that by having 4 workers.
+
+NOPE.
 Something to do with the fact that they are just starting to monitor a new leader when they get the Down message.
-Don't actually start monitoring a new leader when they get the view message.
+Don't actually start monitoring a new leader when they get the view message?
+NOPE.
+
+Þeir eru sammála um hver er leaderinn, samt er þetta að gerast.
+
+7> test:test_gms2_random_crash().
+Will kill all processes in 90 sec
+leader 1: crash
+[4][<0.141.0>] LEADER IS: <0.139.0>
+[5][<0.142.0>] LEADER IS: <0.139.0>
+[3][<0.140.0>] LEADER IS: <0.139.0>
+[2][<0.139.0>] LEADER IS: myself
+leader 2: crash
+[4][<0.141.0>] LEADER IS: <0.140.0>
+[3][<0.140.0>] LEADER IS: myself
+[5][<0.142.0>] LEADER IS: <0.140.0>
+leader 3: crash
+[5][<0.142.0>] LEADER IS: <0.141.0>
+[4][<0.141.0>] LEADER IS: myself
+leader 4: crash
+[5][<0.142.0>] LEADER IS: myself
+stop
+
+-------------------------------
+
+Ef leaderinn er að senda út á alla slaves, en deyr svo áður en hann nær að senda á alla (MISSING MESSAGES),
+þá fá ekki allir skilaboðin um litabreytinguna. ATH að litabreytingin byggir alltaf á núverandi lit ((R+N) rem 256),
+þannig að þeir syncast ekki saman þótt þeir verði svo sammála um nýja leaderinn.
+
+Node1: 100
+Node2: 100
+
+Node1: 100
+Node2: 100+10
+
+Node1: 100+50 = 150
+Node2: 110+50 = 160
+
+Node1: 150+30 = 180
+Node2: 160+30 = 190
+
+Sama þótt þeir séu núna í synci með öll skilaboð sem þeir fá úr þessu, þá er Node2 alltaf með 10 hærra R gildi
+-> Alltaf mismunandi litir.
+
+--------------------------------
+
+[3][<0.196.0>] LEADER SENT MESSAGE TO NODE: <0.197.0>, MESSAGE: {msg,
+                                                                 {change,6}}
+[3][<0.196.0>] LEADER SENT MESSAGE TO NODE: <0.198.0>, MESSAGE: {msg,
+                                                                 {change,6}}
+[3][<0.196.0>] LEADER SENT MESSAGE TO NODE: <0.197.0>, MESSAGE: {msg,
+                                                                 {change,7}}
+[3][<0.196.0>] LEADER SENT MESSAGE TO NODE: <0.198.0>, MESSAGE: {msg,
+                                                                 {change,7}}
+[3][<0.196.0>] LEADER SENT MESSAGE TO NODE: <0.197.0>, MESSAGE: {msg,
+                                                                 {change,20}}
+
+!!!CRASH BEFORE IT CAN SEND THE MESSAGE TO 198!!!
+
+leader 3: crash
+[5][<0.198.0>] LEADER IS: <0.197.0>
+[4][<0.197.0>] LEADER SENT MESSAGE TO NODE: <0.198.0>, MESSAGE: {view,
+                                                                 [<0.197.0>,
+                                                                  <0.198.0>],
+                                                                 [<0.191.0>,
+                                                                  <0.192.0>]}
+[4][<0.197.0>] LEADER IS: myself
+[4][<0.197.0>] LEADER SENT MESSAGE TO NODE: <0.198.0>, MESSAGE: {msg,
+                                                                 {change,14}}
+[4][<0.197.0>] LEADER SENT MESSAGE TO NODE: <0.198.0>, MESSAGE: {msg,
+                                                                 {change,10}}
+[4][<0.197.0>] LEADER SENT MESSAGE TO NODE: <0.198.0>, MESSAGE: {msg,
+                                                                 {change,10}}
+
+Node 198 is now missing the {change,20} message, so it will be out of sync with the color progression of node 197
+(the leader).
+
+-----------------------------------------------------------------------------------------------------------------------
