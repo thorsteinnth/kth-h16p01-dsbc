@@ -79,6 +79,7 @@ in sync.
 -----------------------------------------------------------------------------------------------------------------------
 
 missing messages testing:
+leader crashes before he can broadcast the message to all workers.
 introduced random crash. Am supposed to get the state of the workers out of sync.
 What is happening?
 Am getting them out of sync. Got that by having 4 workers.
@@ -274,12 +275,63 @@ OK NOW.
 Run some experiments and create a group spanning several computers, if available.
 Can we keep a group rolling by adding more nodes as existing nodes die?
 
-Yes I can.
+Yes I can. Just testing on one computer though.
 Have to have a reference to a node that is alive.
 Best to test this by putting the arghh value to 200 so they don't crash to often.
 Can then do e.g.
 W6 = test:add(6, gms3, W5, 1000)
 Where W5 has to be alive, to add it to the group.
+
+-----------------------------------------------------------------------------------------------------------------------
+
+4 Optional task for extra bonus: What could possible go wrong
+
+Note that the Erlang system's only guarantee is that messages are delivered in FIFO order, not that they actually
+do arrive.
+We have built our system relying on reliable delivery of messages, something that is not guaranteed.
+
+How would we have to change the implementation to handle the possibly lost messages?
+How would this impact performance?
+
+For the extra bonus, change your implementation to handle the possibly lost messages.
+In the report, shortly explain your changes and discuss how this would impact performance.
+
+We also rely on that the Erlang failure detector is perfect.
+
+The second reason why things will not work is that we rely on that the Erlang failure detector is perfect
+i.e. that it will never suspect any correct node for having crashed.
+Is this really the case?
+Can we adapt the system so that it will behave correctly if it does make progress,
+even though it might not always make progress?
+
+The third reason why things do not work is that we could have a situation where one incorrect node
+delivers a message that will not be delivered by any correct node.
+This could happen even if we had reliable send operations and perfect failure detectors.
+How could this happen and how likely is it that it does? What would a solution look like?
+
+-----------------------------------------------------------------------------------------------------------------------
+
+For the extra bonus, change your implementation to handle the possibly lost messages.
+In the report, shortly explain your changes and discuss how this would impact performance.
+- geri ráð fyrir að þetta sé nóg til að fá extra bonus. segir reyndar á heimasíðu verkefnisins að
+"Specifically for this homework, be prepared to discuss the questions under section 4 at the reporting seminar."
+En held að ég þurfi að vera búinn að finna svar við þeim til að fá bónusinn.
+
+Handle lost messages:
+Sent but not received.
+Vera bara með eitthvað ACK og retries.
+Þarf þá að monitora slaves? Vil ekki senda á dauðan slave og bíða að eilífu.
+
+
+
+
+
+
+
+
+
+
+
 
 
 

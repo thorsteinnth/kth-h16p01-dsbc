@@ -16,6 +16,7 @@
 -define(timeout, 1000).
 % Risk of crashing. A value of 100 means that a process will crash in average once in a hundred attempts.
 -define(arghh, 50).
+%-define(arghh, 200). % Useful for testing the running group (joins after deaths)
 
 % Initialize a process that is the first node in a group
 % Give it an empty list of peers and let it know that its master is the only node in the group
