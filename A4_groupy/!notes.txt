@@ -194,12 +194,80 @@ Note that if the leader dies before it has the chance to send out any messages, 
 A new leader will be elected and the nodes will not go out of sync, since none of them received the change color
 (increment color actually) message.
 
+Not getting them in sync
 
+[4][<0.78.0>] RECEIVED MESSAGE: {msg,53,{change,1}}
+[5][<0.79.0>] RECEIVED MESSAGE: {msg,53,{change,1}}
+[6][<0.80.0>] RECEIVED MESSAGE: {msg,53,{change,1}}
+leader 3: crash
+[4][<0.78.0>] RECEIVED MESSAGE: {msg,54,{change,5}}
+[5][<0.79.0>] RECEIVED MESSAGE: {msg,54,{change,5}}
+[6][<0.80.0>] RECEIVED MESSAGE: {msg,54,{change,5}}
 
+!!!EVERYBODY AT 54
 
+[4][<0.78.0>] LEADER IS: myself
+[5][<0.79.0>] LEADER IS: <0.78.0>
+[6][<0.80.0>] LEADER IS: <0.78.0>
 
+!!!RESENDING 54
 
+[4][<0.78.0>] NEW LEADER BROADCASTING LAST RECEIVED MSG: {msg,54,{change,5}}
+[5][<0.79.0>] RECEIVED MESSAGE: {msg,54,{change,5}}
+[6][<0.80.0>] RECEIVED MESSAGE: {msg,54,{change,5}}
 
+!!! THE OTHER NODES WILL PERFORM THIS COLOR CHANGE! THE CRITERIA IS IF I<N
+!!! NOW THE TWO SLAVES ARE AHEAD OF THE LEADER IN THE COLOR PROGRESSION
+
+[5][<0.79.0>] RECEIVED MESSAGE: {view,55,
+                                      [<0.78.0>,<0.79.0>,<0.80.0>],
+                                      [<0.72.0>,<0.73.0>,<0.74.0>]}
+[6][<0.80.0>] RECEIVED MESSAGE: {view,55,
+                                      [<0.78.0>,<0.79.0>,<0.80.0>],
+                                      [<0.72.0>,<0.73.0>,<0.74.0>]}
+[5][<0.79.0>] RECEIVED MESSAGE: {msg,56,{change,2}}
+[6][<0.80.0>] RECEIVED MESSAGE: {msg,56,{change,2}}
+[5][<0.79.0>] RECEIVED MESSAGE: {msg,57,{change,11}}
+[6][<0.80.0>] RECEIVED MESSAGE: {msg,57,{change,11}}
+
+NOTE
+ERROR IN ASSIGNMENT DOC
+we discard messages when I <= N, where I is the incoming seqnum, and N is our seqnum (i.e. the seqnum of the last
+message we accepted).
+The assignment doc has I < N.
+
+4][<0.122.0>] RECEIVED MESSAGE: {msg,52,{change,15}}
+[5][<0.123.0>] RECEIVED MESSAGE: {msg,52,{change,15}}
+[6][<0.124.0>] RECEIVED MESSAGE: {msg,52,{change,15}}
+[4][<0.122.0>] RECEIVED MESSAGE: {msg,53,{change,5}}
+[5][<0.123.0>] RECEIVED MESSAGE: {msg,53,{change,5}}
+[6][<0.124.0>] RECEIVED MESSAGE: {msg,53,{change,5}}
+leader 3: crash
+[4][<0.122.0>] RECEIVED MESSAGE: {msg,54,{change,17}}
+[5][<0.123.0>] RECEIVED MESSAGE: {msg,54,{change,17}}
+[6][<0.124.0>] RECEIVED MESSAGE: {msg,54,{change,17}}
+[4][<0.122.0>] LEADER IS: myself
+[5][<0.123.0>] LEADER IS: <0.122.0>
+[6][<0.124.0>] LEADER IS: <0.122.0>
+[4][<0.122.0>] NEW LEADER BROADCASTING LAST RECEIVED MSG: {msg,54,{change,17}}
+[5][<0.123.0>] DISCARDING MESSAGE WITH SEQNUM: 54, CURRENT SEQNUM: 54, MESSAGE: {change,
+                                                                                 17}
+[6][<0.124.0>] DISCARDING MESSAGE WITH SEQNUM: 54, CURRENT SEQNUM: 54, MESSAGE: {change,
+                                                                                 17}
+[5][<0.123.0>] RECEIVED MESSAGE: {view,55,
+                                     [<0.122.0>,<0.123.0>,<0.124.0>],
+                                     [<0.115.0>,<0.116.0>,<0.117.0>]}
+[6][<0.124.0>] RECEIVED MESSAGE: {view,55,
+                                     [<0.122.0>,<0.123.0>,<0.124.0>],
+                                     [<0.115.0>,<0.116.0>,<0.117.0>]}
+[5][<0.123.0>] RECEIVED MESSAGE: {msg,56,{change,7}}
+[6][<0.124.0>] RECEIVED MESSAGE: {msg,56,{change,7}}
+[5][<0.123.0>] RECEIVED MESSAGE: {msg,57,{change,1}}
+[6][<0.124.0>] RECEIVED MESSAGE: {msg,57,{change,1}}
+[5][<0.123.0>] RECEIVED MESSAGE: {msg,58,{change,2}}
+[6][<0.124.0>] RECEIVED MESSAGE: {msg,58,{change,2}}
+
+OK NOW.
 
 
 
