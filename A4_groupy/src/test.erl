@@ -108,6 +108,10 @@ test_gms3_create_group(NumberOfNodes) ->
   Wrk = more(NumberOfNodes, gms3, 1000),
   Wrk.
 
+test_gms4_create_group(NumberOfNodes) ->
+  Wrk = more(NumberOfNodes, gms4, 6000),
+  Wrk.
+
 % TEST SCRIPT FOR ROLLING GROUP
 % W1 = test:first(1, gms3, 1000)
 % W2 = test:add(2, gms3, W1, 1000)
@@ -116,7 +120,8 @@ test_gms3_create_group(NumberOfNodes) ->
 % W5 = test:add(5, gms3, W1, 1000)
 % W6 = test:add(6, gms3, W1, 1000)
 
-% Þarf að senda svo join request (add) á einhverja node sem er ennþá lifandi
+% Þarf að senda svo join request (add)
+% á einhverja node sem er ennþá lifandi
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
