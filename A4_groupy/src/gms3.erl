@@ -92,27 +92,39 @@ leader(Id, Master, N, Slaves, Group) ->
 slave(Id, Master, Leader, N, Last, Slaves, Group) ->
   receive
     {mcast, Msg} ->
+      % FROM MASTER
       % a request from its master to multicast a message, the message is forwarded to the leader.
       % message from application layer, not from leader, no seqnum
       Leader ! {mcast, Msg},
       slave(Id, Master, Leader, N, Last, Slaves, Group);
     {join, Wrk, Peer} ->
+      % FROM MASTER
       % a request from the master to allow a new node to join the group, the message is forwarded to the leader.
       % message from application layer, not from leader, no seqnum
       Leader ! {join, Wrk, Peer},
       slave(Id, Master, Leader, N, Last, Slaves, Group);
-    {msg, I, Msg} when I < N ->
+    {msg, I, Msg} when I =< N ->
+      % FROM LEADER
       % Discard messages that we have already seen (duplicates)
-      io:format("[~p][~p] DISCARDING MESSAGE WITH SEQNUM: ~p, CURRENT SEQNUM: ~p, MESSAGE: ~p~n", [Id, self(), I, N, Msg]),
+      %io:format("[~p][~p] DISCARDING MESSAGE WITH SEQNUM: ~p, CURRENT SEQNUM: ~p, MESSAGE: ~p~n", [Id, self(), I, N, Msg]),
       slave(Id, Master, Leader, N, Last, Slaves, Group);
     {msg, NewN, Msg} ->
+      % FROM LEADER
       % a multicasted message from the leader. A message Msg is sent to the master.
+      %printMessage(Id, {msg, NewN, Msg}),
       Master ! Msg,
       % Update current seqnum and update the latest message received from leader
       slave(Id, Master, Leader, NewN, {msg, NewN, Msg}, Slaves, Group);
+    {view, I, [Leader|Slaves2], Group2} when I =< N ->
+      % FROM LEADER
+      % Discard messages that we have already seen (duplicates)
+      %io:format("[~p][~p] DISCARDING MESSAGE WITH SEQNUM: ~p, CURRENT SEQNUM: ~p, MESSAGE: ~p~n", [Id, self(), I, N, {view, I, [Leader|Slaves2], Group2}]),
+      slave(Id, Master, Leader, N, Last, Slaves, Group);
     {view, NewN, [Leader|Slaves2], Group2} ->
+      %FROM LEADER
       % {view, Peers, Group}
       % a multicasted view from the leader. A view is delivered to the master process.
+      %printMessage(Id, {view, NewN, [Leader|Slaves2], Group2}),
       % TODO Just received a new view from the leader, should I set up a monitor on it?
       % Update current seqnum and update the latest message received from leader
       Master ! {view, Group2},
@@ -166,19 +178,21 @@ election(Id, Master, N, Last, Slaves, [_|Group]) ->
   case Slaves of
     [Self|Rest] ->
       % I am the first node in the list of slaves, I should be the new leader
+      printLeader(Id, myself),
+      % Forward the last received message to all peers in the group (in case they didn't receive it)
+      io:format("[~p][~p] NEW LEADER BROADCASTING LAST RECEIVED MSG: ~p~n", [Id, self(), Last]),
+      bcast(Id, Last, Rest),  % Seqnum of the message Last should be N
       % Broadcast to all other slaves the new view (with me as the first node in the slave list -> leader)
       % Note that we removed the first application layer process from Group (the leader) before sending it here
-      bcast(Id, {view, Slaves, Group}, Rest),
+      NewN = N+1, % Increment seqnum, this is a new message from the leader (me)
+      bcast(Id, {view, NewN, Slaves, Group}, Rest),
       Master ! {view, Group},
-      % Forward the last received message to all peers in the group (in case they didn't receive it)
-      bcast(Id, Last, Rest),
-      printLeader(Id, myself),
-      leader(Id, Master, N+1 , Rest, Group);
+      leader(Id, Master, NewN+1 , Rest, Group); % Start the leader loop with a new seqnum
     [Leader|Rest] ->
       % I am not the first node in the slave list, therefore I am not the new leader
+      printLeader(Id, Leader),
       % Set up a monitor on the new leader
       erlang:monitor(process, Leader),
-      printLeader(Id, Leader),
       slave(Id, Master, Leader, N, Last, Rest, Group)
   end.
 
@@ -187,5 +201,8 @@ election(Id, Master, N, Last, Slaves, [_|Group]) ->
 
 printLeader(MyId, Leader) ->
   io:format("[~p][~p] LEADER IS: ~p~n", [MyId, self(), Leader]).
+
+printMessage(MyId, Msg) ->
+  io:format("[~p][~p] RECEIVED MESSAGE: ~p~n", [MyId, self(), Msg]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%

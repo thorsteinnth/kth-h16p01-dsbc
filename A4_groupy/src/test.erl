@@ -94,13 +94,15 @@ test_gms3_random_crash() ->
   W3 = test:add(3, gms3, W1, 1000),
   W4 = test:add(4, gms3, W1, 1000),
   W5 = test:add(5, gms3, W1, 1000),
+  W6 = test:add(6, gms3, W1, 1000),
   io:format("Will kill all processes in 90 sec~n", []),
   timer:sleep(90000),
   test:kill(W1),
   test:kill(W2),
   test:kill(W3),
   test:kill(W4),
-  test:kill(W5).
+  test:kill(W5),
+  test:kill(W6).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
