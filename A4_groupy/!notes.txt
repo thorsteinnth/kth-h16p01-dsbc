@@ -322,9 +322,48 @@ Sent but not received.
 Vera bara með eitthvað ACK og retries.
 Þarf þá að monitora slaves? Vil ekki senda á dauðan slave og bíða að eilífu.
 
+Queue sem heldur utan um sent but not acked messages
+Þegar ég fæ ACK þá henda úr því queue.
+Þegar slave deyr þá henda færslunum hans úr queueinu.
 
+What if the ACKs get lost?
+What if the leader dies, and his outgoingQueue gets lost as well?
 
+Er ekki að fá ACK fyrir fyrstu tvö msgs
 
+[1][<0.72.0>] LEADER BROADCASTING VIEW MESSAGE WITH SEQNUM: 0
+[1][<0.72.0>] BCAST NEW OUTGOING QUEUE: [{<0.73.0>,0}]
+[1][<0.72.0>] LEADER BROADCASTING VIEW MESSAGE WITH SEQNUM: 1
+[1][<0.72.0>] BCAST NEW OUTGOING QUEUE: [{<0.73.0>,0},
+                                         {<0.73.0>,1},
+                                         {<0.74.0>,1}]
+[1][<0.72.0>] LEADER BROADCASTING MCAST MESSAGE WITH SEQNUM: 2
+[1][<0.72.0>] BCAST NEW OUTGOING QUEUE: [{<0.73.0>,0},
+                                         {<0.73.0>,1},
+                                         {<0.74.0>,1},
+                                         {<0.73.0>,2},
+                                         {<0.74.0>,2}]
+[1][<0.72.0>] LEADER RECEIVING ACK FROM <0.73.0> FOR SEQNUM 1
+[1][<0.72.0>] LEADER BROADCASTING MCAST MESSAGE WITH SEQNUM: 3
+[1][<0.72.0>] BCAST NEW OUTGOING QUEUE: [{<0.73.0>,0},
+                                         {<0.74.0>,1},
+                                         {<0.73.0>,2},
+                                         {<0.74.0>,2},
+                                         {<0.73.0>,3},
+                                         {<0.74.0>,3}]
+.......
+
+1][<0.72.0>] BCAST NEW OUTGOING QUEUE: [{<0.73.0>,0},
+                                         {<0.74.0>,1},
+                                         {<0.73.0>,21},
+                                         {<0.74.0>,21},
+                                         {<0.73.0>,22},
+
+NOPE
+Þetta er vegna þess að ég er ekki búinn að vinna úr view message-inu þegar ég sendi ACK to leader ... veit ekki
+hver leaderinn er í fyrsta skiptið
+NOPE
+Var ekki að ACKa fysta view messageið sem kemur í init
 
 
 
