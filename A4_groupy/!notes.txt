@@ -190,6 +190,10 @@ New leader resends message to all nodes
 Node X receives a duplicate
 -> Number all messages and only deliver new messages to the application layer
 
+Note that if the leader dies before it has the chance to send out any messages, we do not have a problem.
+A new leader will be elected and the nodes will not go out of sync, since none of them received the change color
+(increment color actually) message.
+
 
 
 
