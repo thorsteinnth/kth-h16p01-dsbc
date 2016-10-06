@@ -377,14 +377,64 @@ Hefði kannski getað bara látið lengra timeout samt.
 Sendi ekki nýtt af stað fyrr en queueið er tómt!
 
 Missing:
-We should not send the next message until the OutgoingQueue is empty.
-Now we can be out of sync for a bit.
-We should also monitor the slaves for crashes. If a slave crashes, all his entries in the OutgoingQueue should
-be removed.
+We should not send the next message until the OutgoingQueue is empty. Now we can be out of sync for a bit.
+We should also monitor the slaves for crashes. If a slave crashes,
+all his entries in the OutgoingQueue should be removed.
+What if ACKs get lost?
+Make slave keep a hold back queue and only deliver the messages in order to the application layer
 
+-----------------------------------------------------------------------------------------------------------------------
 
+Atomic Multicast
+A reliable total order multicast. Solves both leader election and mutual exclusion.
 
+The communication is divided into views and messages will be said to be delivered in a view.
+For all messages in a view we will guarantee the following:
+• in FIFO order: in the order that they were sent by a node
+• in total order: all nodes see the same sequence
+• reliably: if a correct node delivers a message, all correct nodes deliver the message
 
+The last statement seems to be a bit weak, what do we mean by a correct node?
+A node will fail only by crashing and will then never be heard from again.
+A correct node is a node that does not fail during a view i.e. it survives to install the next view.
+
+---> A correct node does not die during a communication phase!
+
+The state message might however not be the first message that is delivered.
+We might have other state changes in the pipeline.
+Once the state is received these state changes must of course be applied to the state before the process
+is up and running. The implementation uses the implicit deferral of Erlang and simply let any state change messages
+remain in the message queue and chooses to handle the state message first before the state change messages.
+- sjá worker:state()
+
+ATH
+Mig grunar að þetta fari í fokk ef ég fæ nýtt state frá nýjum leader áður en ég fæ down messageið frá gamla leader.
+Fæ nýtt view, er þá með nýjan leader og slaves.
+Fæ svo down message, ég gæti þá verið fremstur í slaves listanum, og haldið að ég eigi að verða leaderinn? Þó svo að
+við séum með nýjan leader already.
+NOPE hann heldur sér fremstum í nýja slave listanum líka. Hins vegar cöttum við framan af group í fyrsta view messaginu
+sem við sendum út. Ef menn fá svo DOWN message þá cötta þeir aftur framan af group.
+
+-----------------------------------------------------------------------------------------------------------------------
+
+NOTES ÚR PRESENTATION 061016
+
+Skoðaði ekki einu sinni kóðann.
+Sáttur bara.
+Mesta vesenið í gms4 er þegar leader deyr ... hvað verður um OutgoingQueueið hans?
+Þyrfti að replicate-a því á alla, fyrir öll messages, eða taka einhverkonar diff eða eitthvað var hann að tala um.
+
+Síðasta spurningin:
+
+The third reason why things do not work is that we could have a situation where one incorrect node delivers a message
+that will not be delivered by any correct node. This could happen even if we had reliable send operations and perfect
+failure detectors. How could this happen and how likely is it that it does? What would a solution look like?
+
+An incorrect node is a node that delivers its message (to the application layer) and then crashes, before it
+broadcasts the message to its peers (rest of the group).
+A correct node is a node that delivers its message, doesn't crash, and delivers it to the rest of the group.
+
+Fix to this is to broadcast before you deliver - "first naive solution"
 
 
 
