@@ -365,7 +365,22 @@ hver leaderinn er í fyrsta skiptið
 NOPE
 Var ekki að ACKa fysta view messageið sem kemur í init
 
+-----------------------------------------------------------------------------------------------------------------------
 
+Hvenær á ég að re-senda úr queueinu?
+Ég verð að vera með þessa queue pælingu því ég get ekki látið hann bíða strax eftir ACKinu eftir að hafa sent.
+Þá hunsar hann önnur join messages frá öðrum á meðan, fá ekki response.
+Hefði kannski getað bara látið lengra timeout samt.
+
+Það meikar svosem sense að senda aftur úr outgoing queuinu áður en ég reyni að senda næstu skilaboð.
+Þá tryggir það að FIFO orderið haldi sér.
+Sendi ekki nýtt af stað fyrr en queueið er tómt!
+
+Missing:
+We should not send the next message until the OutgoingQueue is empty.
+Now we can be out of sync for a bit.
+We should also monitor the slaves for crashes. If a slave crashes, all his entries in the OutgoingQueue should
+be removed.
 
 
 
