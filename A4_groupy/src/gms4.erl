@@ -17,6 +17,7 @@
 % Risk of crashing. A value of 100 means that a process will crash in average once in a hundred attempts.
 -define(arghh, 50).
 %-define(arghh, 200). % Useful for testing the running group (joins after deaths)
+-define(messageLossArghh, 10).
 
 % Let's keep sent-but-not-acked messages in an OutgoingQueue
 % a list of {{RecipientPid, SeqNum}, Message}
@@ -73,6 +74,7 @@ leader(Id, Master, N, Slaves, Group, OutgoingQueue) ->
       % Message either from its own master or from a peer node.
       % A message {msg, Msg} is multicasted to all peers and a message Msg is sent to the application layer.
       %io:format("[~p][~p] LEADER BROADCASTING MCAST MESSAGE WITH SEQNUM: ~p TO: ~p~n", [Id, self(), N, Slaves]),
+      resendMessagesInOutgoingQueue(OutgoingQueue),
       NewOutgoingQueue = bcast(Id, {msg, N, Msg}, Slaves, OutgoingQueue),  % Send a message to each of the processes in a list
       Master ! Msg,
       leader(Id, Master, N+1, Slaves, Group, NewOutgoingQueue);
@@ -80,6 +82,7 @@ leader(Id, Master, N, Slaves, Group, OutgoingQueue) ->
       % Message, from a peer or the master, that is a request from a node to join the group.
       % The message contains both the process identifier of the application layer, Wrk, and the
       % process identifier of its group process, Peer.
+      resendMessagesInOutgoingQueue(OutgoingQueue),
       Slaves2 = lists:append(Slaves, [Peer]),
       Group2 = lists:append(Group, [Wrk]),
       %io:format("[~p][~p] LEADER BROADCASTING VIEW MESSAGE WITH SEQNUM: ~p TO: ~p~n", [Id, self(), N, Slaves2]),
@@ -87,7 +90,7 @@ leader(Id, Master, N, Slaves, Group, OutgoingQueue) ->
       Master ! {view, Group2},
       leader(Id, Master, N+1, Slaves2, Group2, NewOutgoingQueue);
     {ack, {AckingPID, AckedSeqNum}} ->
-      io:format("[~p][~p] LEADER RECEIVING ACK FROM ~p FOR SEQNUM ~p~n", [Id, self(), AckingPID, AckedSeqNum]),
+      %io:format("[~p][~p] LEADER RECEIVING ACK FROM ~p FOR SEQNUM ~p~n", [Id, self(), AckingPID, AckedSeqNum]),
       NewOutgoingQueue = removeAckedMessageFromOutgoingQueue(AckingPID, AckedSeqNum, OutgoingQueue),
       leader(Id, Master, N, Slaves, Group, NewOutgoingQueue);
     stop ->
@@ -119,37 +122,61 @@ slave(Id, Master, Leader, N, Last, Slaves, Group) ->
       slave(Id, Master, Leader, N, Last, Slaves, Group);
 
     % FROM LEADER
-    {msg, NewN, Msg} when NewN > 20 -> % TODO Remove after testing
-      % Discard all msg messages after having received X number of messages (to test missing messages)
-      %printMessage(Id, {msg, NewN, Msg}),
-      slave(Id, Master, Leader, N, Last, Slaves, Group);
     {msg, I, Msg} when I =< N ->
       % Discard messages that we have already seen (duplicates)
       %io:format("[~p][~p] DISCARDING MESSAGE WITH SEQNUM: ~p, CURRENT SEQNUM: ~p, MESSAGE: ~p~n", [Id, self(), I, N, Msg]),
       %printMessage(Id, {msg, I, Msg}),
-      sendAckToLeader(Leader, I),
-      slave(Id, Master, Leader, N, Last, Slaves, Group);
+      ShouldLoseMessage = simulateMessageLoss(),
+      if
+        ShouldLoseMessage ->
+          io:format("[~p][~p] SIMULATING MESSAGE LOSS, MESSAGE: ~p~n", [Id, self(), {msg, I, Msg}]),
+          slave(Id, Master, Leader, N, Last, Slaves, Group);
+        true ->
+          sendAckToLeader(Leader, I),
+          slave(Id, Master, Leader, N, Last, Slaves, Group)
+      end;
     {msg, NewN, Msg} ->
       % a multicasted message from the leader. A message Msg is sent to the master.
       %printMessage(Id, {msg, NewN, Msg}),
-      sendAckToLeader(Leader, NewN),
-      Master ! Msg,
-      % Update current seqnum and update the latest message received from leader
-      slave(Id, Master, Leader, NewN, {msg, NewN, Msg}, Slaves, Group);
+      ShouldLoseMessage = simulateMessageLoss(),
+      if
+        ShouldLoseMessage ->
+          io:format("[~p][~p] SIMULATING MESSAGE LOSS, MESSAGE: ~p~n", [Id, self(), {msg, NewN, Msg}]),
+          slave(Id, Master, Leader, N, Last, Slaves, Group);
+        true ->
+          sendAckToLeader(Leader, NewN),
+          Master ! Msg,
+          % Update current seqnum and update the latest message received from leader
+          slave(Id, Master, Leader, NewN, {msg, NewN, Msg}, Slaves, Group)
+      end;
     {view, I, [Leader|Slaves2], Group2} when I =< N ->
       % Discard messages that we have already seen (duplicates)
       %io:format("[~p][~p] DISCARDING MESSAGE WITH SEQNUM: ~p, CURRENT SEQNUM: ~p, MESSAGE: ~p~n", [Id, self(), I, N, {view, I, [Leader|Slaves2], Group2}]),
       %printMessage(Id, {view, I, [Leader|Slaves2], Group2}),
-      sendAckToLeader(Leader, I),
-      slave(Id, Master, Leader, N, Last, Slaves, Group);
+      ShouldLoseMessage = simulateMessageLoss(),
+      if
+        ShouldLoseMessage ->
+          io:format("[~p][~p] SIMULATING MESSAGE LOSS, MESSAGE: ~p~n", [Id, self(), {view, I, [Leader|Slaves2], Group2}]),
+          slave(Id, Master, Leader, N, Last, Slaves, Group);
+        true ->
+          sendAckToLeader(Leader, I),
+          slave(Id, Master, Leader, N, Last, Slaves, Group)
+      end;
     {view, NewN, [Leader|Slaves2], Group2} ->
       % {view, Peers, Group}
       % a multicasted view from the leader. A view is delivered to the master process.
       %printMessage(Id, {view, NewN, [Leader|Slaves2], Group2}),
-      sendAckToLeader(Leader, NewN),
-      % Update current seqnum and update the latest message received from leader
-      Master ! {view, Group2},
-      slave(Id, Master, Leader, NewN, {view, NewN, [Leader|Slaves2], Group2}, Slaves2, Group2);
+      ShouldLoseMessage = simulateMessageLoss(),
+      if
+        ShouldLoseMessage ->
+          io:format("[~p][~p] SIMULATING MESSAGE LOSS, MESSAGE: ~p~n", [Id, self(), {view, NewN, [Leader|Slaves2], Group2}]),
+          slave(Id, Master, Leader, N, Last, Slaves, Group);
+        true ->
+          sendAckToLeader(Leader, NewN),
+          % Update current seqnum and update the latest message received from leader
+          Master ! {view, Group2},
+          slave(Id, Master, Leader, NewN, {view, NewN, [Leader|Slaves2], Group2}, Slaves2, Group2)
+      end;
 
     % FROM MONITOR
     {'DOWN', _Ref, process, Leader, _Reason} ->
@@ -214,7 +241,7 @@ bcast(Id, Msg, Nodes, OutgoingQueue) ->
     OutgoingQueue,
     Nodes
   ),
-  io:format("[~p][~p] BCAST NEW OUTGOING QUEUE: ~p~n", [Id, self(), NewOutgoingQueue]),
+  %io:format("[~p][~p] BCAST NEW OUTGOING QUEUE: ~p~n", [Id, self(), NewOutgoingQueue]),
   NewOutgoingQueue.
 
 crash(Id) ->
@@ -227,9 +254,27 @@ crash(Id) ->
     _ -> ok
   end.
 
+simulateMessageLoss() ->
+  case random:uniform(?messageLossArghh) of
+    ?messageLossArghh ->
+      % Message should be lost
+      true;
+    _ ->
+      false
+  end.
+
 removeAckedMessageFromOutgoingQueue(AckingPid, AckedSeqNum, OutgoingQueue) ->
   % The queue is of the form {{RecipientPid, SeqNum}, Message}
   lists:keydelete({AckingPid, AckedSeqNum}, 1, OutgoingQueue).
+
+resendMessagesInOutgoingQueue([]) ->
+  ok;
+resendMessagesInOutgoingQueue([FirstEntryInOutgoingQueue | Rest]) ->
+  % The queue is of the form {{RecipientPid, SeqNum}, Message}
+  {{RecipientPid, _}, Message} = FirstEntryInOutgoingQueue,
+  io:format("[~p] RESENDING MESSAGE IN QUEUE TO NODE: ~p, MESSAGE: ~p~n", [self(), RecipientPid, Message]),
+  RecipientPid ! Message,
+  resendMessagesInOutgoingQueue(Rest).
 
 % Elect new leader
 % N: expected sequence number of the next message

@@ -123,6 +123,9 @@ test_gms4_create_group(NumberOfNodes) ->
 % Þarf að senda svo join request (add)
 % á einhverja node sem er ennþá lifandi
 
+% TO TEST GMS4 MESSAGE LOSS
+% test:test_gms4_create_group(3).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
