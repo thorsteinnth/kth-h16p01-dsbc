@@ -4,3 +4,79 @@ Notes from Chord paper
 
 Chord: A Scalable Peer-to-peer Lookup Service for Internet Applications
 
+------------------------------------------------------------------
+
+Abstract
+
+Distributed lookup protocol - locate node with a particular data item
+
+find node that contains key
+
+Logarithmically scalable with number of Chord nodes
+
+------------------------------------------------------------------
+
+1 Introduction
+
+P2P
+
+Lookup in dynamic P2P systems with frequent node arrivals and departures
+
+Mappa key á einhverja nóðu, valueið sem er geymt á nóðunni getur t.d.
+verið data item eða eitthvað annað
+
+Variant of consistent hashing
+Gott load balancing, little movement of keys on joins/departures
+
+Routing table í staðinn fyrir að vita um flestar aðrar nodes í kerfinu
+
+N node system, geyma info um log(N) aðrar nodes í routing tables
+Þarf þetta mikið fyrir efficient routing, en performance degrades gracefully
+ef þetta info er outdated eða ekki til (svona mikið)
+Þarf bara one piece of information til að virka (en slow)
+Resolves lookups via O(logN) messages
+
+Joins/departures oftast þarf max O(log_2(N)) messages til að laga system
+
+"Routing a key through O(logN) other nodes to a destination"
+
+------------------------------------------------------------------
+
+2 Related work
+
+Munur á chord og DNS osfrv
+blabla
+
+------------------------------------------------------------------
+
+3 System model
+
+Load balance
+Decentralization
+Scalability
+Availability
+Flexible naming
+
+library
+
+lookup(key) -> address of node with key
+
+library also notifies application of changes to the set of keys
+that that node is responsible for
+-> get þá látið application færa data frá sér ef það á að færast á einhverja
+nýja nóðu
+
+App þarf að sjá um authentication, caching, replication, user friendly naming of
+data
+
+Use cases
+- Cooperative mirroring
+- Time shared storage
+- Distributed indexes
+- Large scale combinatorial search
+
+------------------------------------------------------------------
+
+4 The base chord protocol
+
+
