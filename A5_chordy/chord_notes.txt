@@ -79,4 +79,63 @@ Use cases
 
 4 The base chord protocol
 
+Base: Simplified version that does not handle concurrent joins/departures
+
+Fast distributed computation of a hash function mapping keys to nodes
+
+Consistent hashing
+High probability of balanced load
+Líka high probability að þegar Nth node joins/leaves, only a O(1/N) fraction
+of keys are moved to a different location
+
+Improves scalability of consistent hashing by avoiding that every node
+knows about every other node
+
+To resolve hash function only need to communicate with O(logN) other nodes
+(þannig þarf bara O(logN) messages, and only keeps info about those nodes
+
+Join/departure þarf O(log_2(N)) messages til að updatea routing info
+
+------------------------------------------------------------------
+
+4.2 Consistent hashing
+
+Each node and key get an m-bit identifier
+hashed with a base hashing function like SHA-1
+Hash nodes IP address -> node identifier
+Hash key -> key identifier
+
+m þarf að vera nógu stórt til að probability of two nodes or keys
+hashing to the same identifier is negligible
+
+Key identifiers are are ordered in a identifier circle, modulo 2^m
+
+Key k is assigned to the first node whose identifier is equal to or or follows
+(the identifier of) k in the identifier space.
+-> called the successor node of key k
+-> successor(k)
+If identifiers are represented as a circle of numbers from 0 to 2^m-1, then
+successor(k) is the first node clockwise from k
+
+Fara til hægri í hringnum þangað til ég finn nóðu
+
+Þegar node joinar network tekur hún eitthvað af keys frá successor nóðunni sinni
+Þegar node leaves network, tekur successor nóðan hennar við öllum keys frá henni
+
+Notar SHA-1 sem base hashing function
+
+Venjulega consistent hashing notar virtual nodes á physical nodes til að reduce-a
+load imbalance
+Chord notar það ekki - load on a node can may exceed the average by at most
+O(logN) factor with high probability (or based on standard hardness assumptions)
+
+------------------------------------------------------------------
+
+4.3 Scalable key location
+
+
+
+
+
+
 
