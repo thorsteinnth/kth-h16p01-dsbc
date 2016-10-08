@@ -264,14 +264,58 @@ Basically spurja successor hver predecessorinn hans er, ef það er ég ekki ég
 Þetta segir líka successornum frá mér, og þá getur successorinn merkt mig sem
 predecessorinn hans
 
+Priority er að successors séu réttir, fæ þá alltaf rétt lookups. Svo þegar
+fix_fingers keyrt þá verður þetta aftur hratt.
 
+Joins don't substantially damage the performance of fingers. Jumpin virka ennþá
+og svo verður það bara linear scan í gegnum nýju nóðurnar if their fingers are not
+yet accurate.
+Unless a tremendous amount of nodes joins the system, the number of nodes between
+two old nodes is likely to be very small, so the impact on lookup is negligible.
 
+So long as the time it takes to adjust fingers is less than the time it takes the
+network to double in size, lookups should continue to take O(logN) hops.
 
+------------------------------------------------------------------
 
+5.2 Failures and replication
 
+Þegar node n fails, nodes sem innihalda n í finger tables-unum sínum,
+þurfa að finna n's successor.
+Failure of n also must not disrupt queries that are in progress as the system is
+re-stabilizing.
 
+Key step in failure recovery is maintaining correct successor pointers, queries
+virka ennþá ef það er bara successor pointers (linear scan).
 
+To achieve this each node maintains a successor list of its r nearest successors
+on the Chord ring.
+A modified operation of the stabilize routine maintains this list.
 
+If node n notices that its successor has failed, it replaces it with the first live
+entry in in its successor list.
+Get þá sent ordinary lookups for keys for which the failed node was the successor to
+the new successor. Stabilize mun svo laga finger table entries and successor list
+entries pointing to the failed node.
+
+After a node failure but before stabilization has completed, other nodes may attempt
+to send requests through the failed node as part of a find_successor lookup.
+Get þá notað alternate nodes, sem finna má í figner table entries preceding that
+of the failed node. Ef failed node var með mjög lágt finger table index, nodes in
+the successor list are also available as alterates.
+
+Successor list getur líka hjálpað higher layer software að replicate-a data.
+Implementationið gæti t.d. geymt replicas af data sem er tengt key at the k nodes
+succeeding the key.
+Node keeps track of r successors, og getur þess vegna sagt higher layer software
+þegar successors come and go, og higher layer software getur þá propagate-að new
+replicas as necessary.
+
+------------------------------------------------------------------
+
+6 Simulation and experimental results
+
+Baj
 
 
 
