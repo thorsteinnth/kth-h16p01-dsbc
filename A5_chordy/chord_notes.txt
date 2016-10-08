@@ -176,6 +176,133 @@ Average lookup time is (1/2)logN
 
 4.4 Node joins
 
+Mesta challengið er að preserve ability to locate every key in the network.
+Two invariants þarf til að gera það:
+
+1. Each node's successor is correctly maintained
+2. For every key k, node successor(k) is responsible for k
+
+With high probability, any node joining or leaving an N node Chord network will
+use O(log^2(N)) messages to re-establish the Chord routing invariants and finger
+tables.
+
+Hver nóða er með predecessor pointer.
+Chord identifier og IP addressa á immediate predecessor of that node, can be used
+to walk counter clockwise around the identifier circle.
+
+Node n joins, þarf að gera:
+1. Initialize the predecessor and fingers of node n
+2. Update the fingers and predecessors of existing nodes to reflect the addition
+of n
+3. Notify the higher level software so that it can transfer state (e.g. values)
+associated with the keys that n is now responsible for
+
+Node n fréttir af node n' sem er nú þegar í Chord networkinu
+Node n notar n' til að initialize-a its state and add itself to the Chord network
+
+Initialize fingers and predecessor:
+Biðja n' um að looka þeim upp
+... tæknilegt stuff
+Node n sem er að joina getur líka beðið immediate neighbor um copy af finger
+table-inu hans og predecessor. n getur þá notað þessar töflur til að hjálpa
+sér að fylla út í sínar eigin töflur.
+Tími til að fylla finger table er O(logN)
+
+Updating fingers of existing nodes:
+Þarf að setja node n í töflurnar hjá existing nodes
+Tæknilegt + pseudocode
+Number of nodes that need to be updated is O(logN).
+Það tekur O(log^2(N)) að finna og update-a þessar nodes.
+
+Transferring keys:
+Þarf að færa responsibility á keys sem n á að sjá um yfir á n (that n is now
+successor of).
+Node n getur orðið successor for keys that were previously the responsibility of
+the node immediately following n, so n only needs to contact that one node to
+transfer responsibility for all relevant keys.
+
+------------------------------------------------------------------
+
+5 Concurrent operations and failures
+
+Þarf að deala við nodes joining the system concurrently and with nodes that
+fail or leave voluntarily.
+
+------------------------------------------------------------------
+
+5.1 Stabilization
+
+Erfitt að halda invariants réttum ef margar concurrent joins.
+Stabilization protocol er used tol að keep nodes' successor pointers
+up to date, which is sufficient to guarantee correctness of lookups.
+Þessir successor pointers eru svo notaðir til að verify and correct
+finger table entries, sem gefur okkur hraða líka (ofan á að vera correct).
+
+Ef að lookup gerist áður en stabilization er búið getur eitt af þrennu gerst:
+1. Common case, finger tables involved in lookup are reasonably current og
+lookup finnur réttan successor í O(logN) steps.
+2. Successor pointers are correct, but fingers are not. This gives correct lookups
+but they may be slower.
+3. Nodes in the affected region have incorrect successor pointers, or keys may not
+have yet migrated to newly joined nodes, and the lookup may fail.
+Higher level software retries after a pause. Stabilization vinnur hratt og
+ætti að laga pointers á meðan pause er í gangi.
+
+Stabilization guarantees to add nodes to a Chord ring in a way that preserves
+reachability of existing nodes, even in the face of concurrent joins and lost and
+reordered messages.
+Stabilization getur samt ekki lagað Chort system sem er búið að splittast í
+marga disjoint cycles, eða single cycle sem loops multiple times around
+the identifier space.
+
+Maður notar þá stabilization í staðinn fyrir venjulega join mechanismann
+Sjá pseudocode
+
+stabilization procedure keyrt periodically.
+Basically spurja successor hver predecessorinn hans er, ef það er ég ekki ég,
+þá verður þessi predecessor successorinn minn
+Þetta segir líka successornum frá mér, og þá getur successorinn merkt mig sem
+predecessorinn hans
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
