@@ -133,6 +133,53 @@ O(logN) factor with high probability (or based on standard hardness assumptions)
 
 4.3 Scalable key location
 
+Þarf í raun bara að vita af my successor node on the circle. Getur þá
+routað í gegnum allan hringinn -> slow and inefficient samt
+Gæti þurft að fara í gegnum allar N nóðurnar
+-> Finger tables (routing tables)
+
+Finger table:
+
+At most m entries (where m is the number of bits in the identifier)
+i-th entry in a table at node n contains the identity of the first node, s,
+that succeeds n by at least 2^(i-1) on the identifier circle
+s = successor(n+2^(i-1)), where 1 <= i <= m (and all arithmetic is modulo 2^m)
+
+node s er þá i-th finger of node n, skrifað
+n.finger[i].node
+
+Finger table er með bæði Chord identifier og IP addressu og port number of
+the relevant node ... get routað beint til hennar
+NOTE: first finger of n is its immediate successor on the ring
+
+For node 1 (m = 3):
+(1+2^0) mod 2^3 = 2
+(1+2^1) mod 2^3 = 3
+(1+2^2) mod 2^3 = 5
+
+Important characteristics:
+1. Bara geyma info um fáar nodes, og veit meira um nodes closely following
+heldur en langt í burtu
+2. Finger table inniheldur generally ekki nóg info til að finna successor
+of an arbitrary key k
+
+node n að leita að node sem er með key k:
+n leitar í finger tableinu sínu að node j whose ID most immediately precedes k,
+and asks j for the node it knows whose ID is closest to k.
+By repeating this process, n learns about nodes with IDs closer and closer to k.
+
+Number of nodes that must be contacted to find a successor in an N-node network
+is O(logN).
+Average lookup time is (1/2)logN
+
+------------------------------------------------------------------
+
+4.4 Node joins
+
+
+
+
+
 
 
 
