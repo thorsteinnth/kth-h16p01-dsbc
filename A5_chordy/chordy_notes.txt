@@ -34,3 +34,9 @@ TODO
 Remember that the we’re dealing with a ring so it could be that From is larger than To.
 What does that mean and how do you handle it?
 
+TODO
+If you study the Chord paper you will find that they explain things slightly different.
+We use our key:between/3 function that allows the key Xkey to be equal to Skey,
+not strictly according to the paper.
+Does this matter? What does it mean that Xkey is equal to Skey, will it ever happen?
+
