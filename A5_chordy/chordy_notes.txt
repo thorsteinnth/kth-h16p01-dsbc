@@ -1,1 +1,36 @@
 Chordy: A distributed hash table
+
+Implement chord storage
+First implementation just a ring structure
+Can add nodes to the ring but not add any elements to the store
+
+Bæta svo failure detection í kerfið
+ATH að við tröckum bara einn successor en actual chordy trackar nokkra
+
+Replication í storeinu til að replicate-a data ef nodes deyja
+"That will take care of some problems but does it actually work?"
+
+Það þarf í raun ekki finger table í network of 20 nodes
+(finger tables leyfa okkur að finna any given key in log(n) hops)
+(annars linear search ef þær eru ekki til staðar)
+
+If you also want to implement mutable objects you will be faced with
+a challenge. Hvernig update-ar maður object (consistently) ef hann er
+replicated? Some nodes might be unavailable during node insertion and failures.
+To solve this you will have to do some more reading.
+
+-----------------------------------------------------------------------------------
+
+1 Building a ring
+
+Notum ekki hash function heldur bara random number sem er generated þegar new key
+er generated
+Engin "names" á nodes, bara random numbers sem við vonum að séu unique.
+"Using a hash function such as SHA-1 would give us 160 bits and allow us to have
+human readable names on object but let’s keep things simple."
+
+Key module:
+TODO
+Remember that the we’re dealing with a ring so it could be that From is larger than To.
+What does that mean and how do you handle it?
+
