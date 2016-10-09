@@ -39,7 +39,13 @@ node(Id, Predecessor, Successor) ->
       io:format("Unknown message type")
   end.
 
+% Node sends a {request, self()} message to its successor and then expects a {status, Pred} in return.
+% Gets the successor's predecessor and runs stabilization
+% Ring is either stable or the successor has to be notified about our existence through
+% a {notify, {Id, self()}} message
 % Pred: Our successor's current predecessor
+% Id: Our Id (key)
+% Successor: Our current successor, on the form {Key, Pid}
 stabilize(Pred, Id, Successor) ->
   {Skey, Spid} = Successor,
   case Pred of
@@ -63,7 +69,7 @@ stabilize(Pred, Id, Successor) ->
           something;
         false ->
           % The other node is not between us and our successor
-          % We should be in between our successor and and the other node
+          % We are in between our successor and and the other node
           % Inform our successor of our existence
           something
       end
