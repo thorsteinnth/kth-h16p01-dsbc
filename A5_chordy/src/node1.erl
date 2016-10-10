@@ -51,14 +51,14 @@ stabilize(Pred, Id, Successor) ->
   case Pred of
     nil ->
       % Inform our successor of our existence
-      Successor ! {notify, {Id, self()}};
+      Spid ! {notify, {Id, self()}};
     {Id, _} ->
       % Pred points back to us, don't do anything
       ok;
     {Skey, _} ->
       % Pred is pointing back to itself (our successor's predecessor is our successor)
       % Inform our successor of our existence
-      Successor ! {notify, {Id, self()}};
+      Spid ! {notify, {Id, self()}};
     {Xkey, Xpid} ->
       % Pred is pointing to another node
       % Should we slide ourselves between the two nodes or behind the other node (successor's predecessor)
@@ -75,6 +75,6 @@ stabilize(Pred, Id, Successor) ->
           % we are in between our successor and and the other node
           % Pred - Me - Successor
           % Inform our successor of our existence
-          Successor ! {notify, {Id, self()}}
+          Spid ! {notify, {Id, self()}}
       end
   end.
