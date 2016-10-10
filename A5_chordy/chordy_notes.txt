@@ -53,3 +53,30 @@ How will it know if we have discarded its friendly proposal?
 TODO
 What would happen if we didn’t schedule the stabilize procedure (when a node is started)?
 Would things still work?
+
+111016 0023
+Eitthvað rugl í stabilize
+
+[<0.70.0>] ENTERED STABILIZE WITH SUCCESSOR ARG AS: {notify,
+                                                     {443584618,<0.70.0>}}
+[<0.71.0>] ENTERED STABILIZE WITH SUCCESSOR ARG AS: {notify,
+                                                     {723040206,<0.71.0>}}
+[<0.72.0>] ENTERED STABILIZE WITH SUCCESSOR ARG AS: {notify,
+                                                     {945816365,<0.72.0>}}
+[<0.73.0>] ENTERED STABILIZE WITH SUCCESSOR ARG AS: {notify,
+                                                     {501490715,<0.73.0>}}
+[<0.74.0>] ENTERED STABILIZE WITH SUCCESSOR ARG AS: {notify,
+                                                     {311326755,<0.74.0>}}
+[<0.75.0>] ENTERED STABILIZE WITH SUCCESSOR ARG AS: {notify,
+                                                     {597447525,<0.75.0>}}
+[<0.70.0>] TRYING TO SEND REQUEST TO: {443584618,<0.70.0>}
+[<0.71.0>] TRYING TO SEND REQUEST TO: {723040206,<0.71.0>}
+[<0.72.0>] TRYING TO SEND REQUEST TO: {945816365,<0.72.0>}
+[<0.73.0>] TRYING TO SEND REQUEST TO: {501490715,<0.73.0>}
+[<0.74.0>] TRYING TO SEND REQUEST TO: {311326755,<0.74.0>}
+[<0.75.0>] TRYING TO SEND REQUEST TO: {597447525,<0.75.0>}
+
+=ERROR REPORT==== 11-Oct-2016::00:22:02 ===
+Error in process <0.70.0> with exit value:
+{badarg,[{node1,stabilize,1,[{file,"node1.erl"},{line,182}]},
+         {node1,node,3,[{file,"node1.erl"},{line,81}]}]}
