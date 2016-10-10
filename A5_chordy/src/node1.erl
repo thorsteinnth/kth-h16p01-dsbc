@@ -45,32 +45,36 @@ node(Id, Predecessor, Successor) ->
 % a {notify, {Id, self()}} message
 % Pred: Our successor's current predecessor
 % Id: Our Id (key)
-% Successor: Our current successor, on the form {Key, Pid}
+% Successor: Our current successor, in the form {Key, Pid}
 stabilize(Pred, Id, Successor) ->
   {Skey, Spid} = Successor,
   case Pred of
     nil ->
       % Inform our successor of our existence
-      something;
+      Successor ! {notify, {Id, self()}};
     {Id, _} ->
       % Pred points back to us, don't do anything
-      something;
+      ok;
     {Skey, _} ->
       % Pred is pointing back to itself (our successor's predecessor is our successor)
       % Inform our successor of our existence
-      something;
+      Successor ! {notify, {Id, self()}};
     {Xkey, Xpid} ->
       % Pred is pointing to another node
-      % Should we slide ourselves between the two nodes or in front of the other node (successor's predecessor)
+      % Should we slide ourselves between the two nodes or behind the other node (successor's predecessor)
       case key:between(Xkey, Id, Skey) of
         true ->
           % The other node is between us and our successor
+          % Me - Pred - Successor
           % Adopt the other node as our successor and run stabilization again
-          something;
+          NewSuccessor = {Xkey, Xpid},
+          stabilize(Pred, Id, NewSuccessor);
         false ->
-          % The other node is not between us and our successor
-          % We are in between our successor and and the other node
+          % The other node is NOT between us and our successor
+          % Pred should always be in front of Successor, so
+          % we are in between our successor and and the other node
+          % Pred - Me - Successor
           % Inform our successor of our existence
-          something
+          Successor ! {notify, {Id, self()}}
       end
   end.
