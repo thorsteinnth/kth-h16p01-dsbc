@@ -9,6 +9,8 @@
 -module(node1).
 -author("tts").
 
+-define(Stabilize, 1000).
+
 %% API
 -export([node/3]).
 
@@ -16,6 +18,7 @@
 
 % Predecessor and successor are of the form {Key, Pid}
 node(Id, Predecessor, Successor) ->
+  schedule_stabilize(),
   receive
     {key, Qref, Peer} ->
       % A peer needs to know our key
@@ -33,6 +36,10 @@ node(Id, Predecessor, Successor) ->
       % Our successor informs us about its predecessor
       Succ = stabilize(Pred, Id, Successor),
       node(Id, Predecessor, Succ);
+    stabilize ->
+      % Send a request message to our successor.
+      stabilize(Successor),
+      node(Id, Predecessor, Successor);
     stop ->
       ok;
     _ ->
@@ -77,4 +84,23 @@ stabilize(Pred, Id, Successor) ->
           % Inform our successor of our existence
           Spid ! {notify, {Id, self()}}
       end
+  end.
+
+% Set up a timer and send a stabilize message to ourselves after a predefined interval.
+% NOTE: Doing it like this so the timer doesn't have to keep track of the current successor.
+schedule_stabilize() ->
+  timer:send_interval(?Stabilize, self(), stabilize).
+
+% Send a request message to a PID.
+stabilize({_, Spid}) ->
+  Spid ! {request, self()}.
+
+% Request message received from Peer
+% Inform Peer of our current predecessor
+request(Peer, Predecessor) ->
+  case Predecessor of
+    nil ->
+      Peer ! {status, nil};
+    {Pkey, Ppid} ->
+      Peer ! {status, {Pkey, Ppid}}
   end.

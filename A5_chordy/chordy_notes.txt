@@ -40,3 +40,6 @@ We use our key:between/3 function that allows the key Xkey to be equal to Skey,
 not strictly according to the paper.
 Does this matter? What does it mean that Xkey is equal to Skey, will it ever happen?
 
+TODO
+What are the pros and cons of a more frequent stabilizing procedure?
+What is delayed if we don’t do stabilizing that often?
