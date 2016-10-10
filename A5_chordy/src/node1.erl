@@ -18,7 +18,7 @@
 
 % Predecessor and successor are of the form {Key, Pid}
 node(Id, Predecessor, Successor) ->
-  schedule_stabilize(),
+  schedule_stabilize(), % TODO Probably shouldn't be here
   receive
     {key, Qref, Peer} ->
       % A peer needs to know our key
@@ -26,6 +26,7 @@ node(Id, Predecessor, Successor) ->
       node(Id, Predecessor, Successor);
     {notify, New} ->
       % A new node informs us of its existence
+      % i.e. suggesting that it might be our predecessor
       Pred = notify(New, Id, Predecessor),
       node(Id, Pred, Successor);
     {request, Peer} ->
@@ -103,4 +104,33 @@ request(Peer, Predecessor) ->
       Peer ! {status, nil};
     {Pkey, Ppid} ->
       Peer ! {status, {Pkey, Ppid}}
+  end.
+
+% A node has suggested that it might be our predecessor
+% {Nkey, Npid} is the key and pid of the node that thinks it is our predecessor (New)
+% Id is our ID (key)
+% Predecessor is our current predecessor
+% Return the correct predecessor
+% TODO Do we need a special case to detect that we’re pointing to ourselves?
+notify({Nkey, Npid}, Id, Predecessor) ->
+  case Predecessor of
+    nil ->
+      % Our own predecessor is nil
+      % Make the New node our predecessor (i.e. return it)
+      {Nkey, Npid};
+    {Pkey,  _} ->
+      % We already have a predecessor
+      % Check if New should be our predecessor instead
+      case key:between(Nkey, Pkey, Id) of
+        true ->
+          % New is between current predecessor and me
+          % Predecessor - New - Me
+          % New should be our predecessor
+          {Nkey, Npid};
+        false ->
+          % New is NOT between current predecessor and me
+          % New - Predecessor - Me
+          % Keep my old predecessor
+          Predecessor
+      end
   end.
