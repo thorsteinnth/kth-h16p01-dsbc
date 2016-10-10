@@ -76,6 +76,20 @@ check([Key|Keys], P, Failed, Timeout) ->
     end.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TESTS ADDED BY ME
+
+test1() ->
+  % Start first node
+  FirstNode = start(node1),
+  % Start more nodes
+  start(node1, 5, FirstNode),
+  % Sleep to let the ring stabilize
+  timer:sleep(10000).
+  % Send a probe around the ring
+  %FirstNode ! probe.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 
 
