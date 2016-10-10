@@ -79,11 +79,53 @@ node(Id, Predecessor, Successor) ->
       % Send a request message to our successor.
       stabilize(Successor),
       node(Id, Predecessor, Successor);
+    probe ->
+      % We should send a probe
+      create_probe(Id, Successor),
+      node(Id, Predecessor, Successor);
+    {probe, Id, Nodes, T} ->
+      % We just received our own probe, let's remove it (and log it)
+      remove_probe(T, Nodes),
+      node(Id, Predecessor, Successor);
+    {probe, Ref, Nodes, T} ->
+      % We just received a prove from another node, let's forward it to our successor
+      % (and add ourselves to the Nodes list)
+      forward_probe(Ref, T, Nodes, Id, Successor),
+      node(Id, Predecessor, Successor);
     stop ->
       ok;
     _ ->
       io:format("Unknown message type")
   end.
+
+% Send a probe message to Successor
+% Probe message is of the form {probe, I, Nodes, Time}
+% I is the ID of the node that sent the probe
+% Nodes is a list of process identifiers in the ring
+% Time is a timestamp created by the node that created the probe
+% (does not mean anything on other nodes (it is local time))
+create_probe(Id, Successor) ->
+  {_, Spid} = Successor,
+  Spid ! {probe, Id, [{Id, self()}], erlang:system_time(micro_seconds)}.
+
+% Handle receiving of our own probe
+% T is the time when the probe was created
+% Nodes is a list of node PIDs in the ring
+remove_probe(T, Nodes) ->
+  CurrentTime = erlang:system_time(micro_seconds),
+  io:format("[~p] Received my own probe - Created time: ~p - Current time: ~p - Nodes: ~p~n",
+    [self(), T, CurrentTime, Nodes]).
+
+% Handle receiving of someone else's probe
+% Add ourselves to the Nodes list and forward it to our successor
+% Ref is the ID of the node that sent the probe
+% T is the time when the probe was created (local time at the node that created it)
+% Nodes is a list of the PIDs that the probe has passed through
+% Id is our own ID (key)
+% Successor is our successor, on the form {key, PID}
+forward_probe(Ref, T, Nodes, Id, Successor) ->
+  {_, Spid} = Successor,
+  Spid ! {probe, Ref, lists:append(Nodes, [{Id, self()}]), T}.
 
 % Node sends a {request, self()} message to its successor and then expects a {status, Pred} in return.
 % Gets the successor's predecessor and runs stabilization
