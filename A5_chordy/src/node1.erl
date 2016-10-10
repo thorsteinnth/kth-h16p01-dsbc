@@ -10,15 +10,53 @@
 -author("tts").
 
 -define(Stabilize, 1000).
+-define(Timeout, 10000).
 
 %% API
--export([node/3]).
+-export([node/3, start/1, start/2]).
 
 % First implementation that only handles a growing ring.
 
+% Start node - we are the first node in a ring
+start(Id) ->
+  start(Id, nil).
+
+% Start node - we are joining a ring
+start(Id, Peer) ->
+  timer:start(),
+  spawn(fun() -> init(Id, Peer) end).
+
+init(Id, Peer) ->
+  Predecessor = nil,
+  % Connect to our successor
+  {ok, Successor} = connect(Id, Peer),
+  schedule_stabilize(),
+  node(Id, Predecessor, Successor).
+
+connect(Id, nil) ->
+  % We are the first node in the ring
+  % We are in fact connecting to ourselves
+  % We are our own successor
+  {ok, {Id, self()}};
+connect(Id, Peer) ->
+  % Id is our own ID
+  % Peer is the PID of the node in the ring we are connecting to
+  % We are connecting to an existing ring
+  % We are connecting to Peer
+  % Send a key message to Peer and wait for a reply
+  Qref = make_ref(),  % Returns a unique reference. The reference is unique among connected nodes.
+  Peer ! {key, Qref, self()},
+  receive
+    {Qref, Skey} ->
+      % We have received the key for Peer
+      % We have our new successor
+      {ok, {Skey, Peer}}
+  after ?Timeout ->
+    io:format("Time out: no response~n",[])
+  end.
+
 % Predecessor and successor are of the form {Key, Pid}
 node(Id, Predecessor, Successor) ->
-  schedule_stabilize(), % TODO Probably shouldn't be here
   receive
     {key, Qref, Peer} ->
       % A peer needs to know our key

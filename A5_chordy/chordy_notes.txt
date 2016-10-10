@@ -49,3 +49,7 @@ notify/3
 Do we need a special case to detect that we’re pointing to ourselves?
 Do we have to inform the new node about our decision?
 How will it know if we have discarded its friendly proposal?
+
+TODO
+What would happen if we didn’t schedule the stabilize procedure (when a node is started)?
+Would things still work?
