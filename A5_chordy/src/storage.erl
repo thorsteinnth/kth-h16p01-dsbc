@@ -11,7 +11,7 @@
 
 %% API
 -export([create/0, add/3, lookup/2, split/3, merge/2,
-  testCreate/0, testAdd/0, testLookup/0, testSplit/0, testMerge/0]).
+  testCreate/0, testAdd/0, testLookup/0, testSplit/0, testMerge/0, printStore/1]).
 
 % The storage is a list of {Key, Value} pairs
 % NOTE: Keys will be integers

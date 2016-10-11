@@ -108,6 +108,10 @@ node(Id, Predecessor, Successor, Store) ->
       % Message from a node that has accepted us as their predecessor
       Merged = storage:merge(Store, Elements),
       node(Id, Predecessor, Successor, Merged);
+    printstore ->
+      % Added this myself for debugging purposes
+      storage:printStore(Store),
+      node(Id, Predecessor, Successor, Store);
     stop ->
       ok;
     _ ->

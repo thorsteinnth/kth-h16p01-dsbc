@@ -108,6 +108,66 @@ test2() ->
   % Send another probe around the ring
   FirstNode ! probe.
 
+testStore1() ->
+  FirstNode = start(node2),
+  Node2 = start(node2, FirstNode),
+  Node3 = start(node2, FirstNode),
+  Node4 = start(node2, FirstNode),
+  Node5 = start(node2, FirstNode),
+  Node6 = start(node2, FirstNode),
+  Node7 = start(node2, FirstNode),
+  Node8 = start(node2, FirstNode),
+  timer:sleep(10000),
+  FirstNode ! probe,
+  timer:sleep(1000),
+  add(key:generate(), value1, FirstNode),
+  add(key:generate(), value2, FirstNode),
+  add(key:generate(), value3, FirstNode),
+  add(key:generate(), value4, FirstNode),
+  FirstNode ! printstore,
+  Node2 ! printstore,
+  Node3 ! printstore,
+  Node4 ! printstore,
+  Node5 ! printstore,
+  Node6 ! printstore,
+  Node7 ! printstore,
+  Node8 ! printstore,
+  timer:sleep(1000).
+
+% Start nodes, add values, start more nodes
+testStore2() ->
+  FirstNode = start(node2),
+  Node2 = start(node2, FirstNode),
+  Node3 = start(node2, FirstNode),
+  timer:sleep(10000),
+  FirstNode ! probe,
+  timer:sleep(10000),
+  add(key:generate(), value1, FirstNode),
+  add(key:generate(), value2, FirstNode),
+  add(key:generate(), value3, FirstNode),
+  add(key:generate(), value4, FirstNode),
+  FirstNode ! printstore,
+  Node2 ! printstore,
+  Node3 ! printstore,
+  timer:sleep(10000),
+  Node4 = start(node2, FirstNode),
+  Node5 = start(node2, FirstNode),
+  Node6 = start(node2, FirstNode),
+  Node7 = start(node2, FirstNode),
+  Node8 = start(node2, FirstNode),
+  timer:sleep(10000),
+  FirstNode ! probe,
+  timer:sleep(10000),
+  FirstNode ! printstore,
+  Node2 ! printstore,
+  Node3 ! printstore,
+  Node4 ! printstore,
+  Node5 ! printstore,
+  Node6 ! printstore,
+  Node7 ! printstore,
+  Node8 ! printstore,
+  timer:sleep(10000).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 
