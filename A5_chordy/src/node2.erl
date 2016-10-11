@@ -13,7 +13,7 @@
 -define(Timeout, 10000).
 
 %% API
--export([node/3, start/1, start/2]).
+-export([node/4, start/1, start/2]).
 
 % First implementation that only handles a growing ring.
 
@@ -32,7 +32,7 @@ init(Id, Peer) ->
   {ok, Successor} = connect(Id, Peer),
   %printSuccessor(Successor),
   schedule_stabilize(),
-  node(Id, Predecessor, Successor).
+  node(Id, Predecessor, Successor, storage:create()).
 
 connect(Id, nil) ->
   % We are the first node in the ring
@@ -57,48 +57,92 @@ connect(Id, Peer) ->
   end.
 
 % Predecessor and successor are of the form {Key, Pid}
-node(Id, Predecessor, Successor) ->
+node(Id, Predecessor, Successor, Store) ->
   receive
     {key, Qref, Peer} ->
       % A peer needs to know our key
       Peer ! {Qref, Id},
-      node(Id, Predecessor, Successor);
+      node(Id, Predecessor, Successor, Store);
     {notify, New} ->
       % A new node informs us of its existence
       % i.e. suggesting that it might be our predecessor
       Pred = notify(New, Id, Predecessor),
-      node(Id, Pred, Successor);
+      node(Id, Pred, Successor, Store);
     {request, Peer} ->
       % A predecessor needs to know our predecessor
       request(Peer, Predecessor),
-      node(Id, Predecessor, Successor);
+      node(Id, Predecessor, Successor, Store);
     {status, Pred} ->
       % Our successor informs us about its predecessor
       Succ = stabilize(Pred, Id, Successor),
       %io:format("[~p] STABILIZE/3 JUST FINISHED, NEW SUCCESSOR: ~p~n", [self(), Succ]),
-      node(Id, Predecessor, Succ);
+      node(Id, Predecessor, Succ, Store);
     stabilize ->
       % Send a request message to our successor.
       %io:format("[~p] WILL ENTER STABILIZE/1 WITH SUCCESSOR ARG AS: ~p~n", [self(), Successor]),
       stabilize(Successor),
-      node(Id, Predecessor, Successor);
+      node(Id, Predecessor, Successor, Store);
     probe ->
       % We should send a probe
       create_probe(Id, Successor),
-      node(Id, Predecessor, Successor);
+      node(Id, Predecessor, Successor, Store);
     {probe, Id, Nodes, T} ->
       % We just received our own probe, let's remove it (and log it)
       remove_probe(T, Nodes),
-      node(Id, Predecessor, Successor);
+      node(Id, Predecessor, Successor, Store);
     {probe, Ref, Nodes, T} ->
       % We just received a prove from another node, let's forward it to our successor
       % (and add ourselves to the Nodes list)
       forward_probe(Ref, T, Nodes, Id, Successor),
-      node(Id, Predecessor, Successor);
+      node(Id, Predecessor, Successor, Store);
+    {add, Key, Value, Qref, Client} ->
+      % Add key and value to store
+      Added = add(Key, Value, Qref, Client, Id, Predecessor, Successor, Store),
+      node(Id, Predecessor, Successor, Added);
+    {lookup, Key, Qref, Client} ->
+      % Lookup key in store
+      lookup(Key, Qref, Client, Id, Predecessor, Successor, Store),
+      node(Id, Predecessor, Successor, Store);
     stop ->
       ok;
     _ ->
       io:format("Unknown message type")
+  end.
+
+% Add a new key value to the store
+% Must determine if our node is the node that should take care of the key.
+% Will take care of all keys from (not including) ID of predecessor to (and including) ID of myself.
+% If we are not responsible for this key-value we send an add message to our successor.
+% Return new Store
+add(Key, Value, Qref, Client, Id, {Pkey, _}, {_, Spid}, Store) ->
+  % Can use the key:between function
+  case key:between(Key, Pkey, Id) of
+    true ->
+      % I should take care of this key
+      Client ! {Qref, ok},
+      NewStore = storage:add(Key, Value, Store),
+      NewStore;
+    false ->
+      % We should not take care of this key, send add message to our successor
+      Spid ! {add, Key, Value, Qref, Client},
+      Store
+  end.
+
+% Lookup in the Store
+% Check if we are responsible for this key-value
+% If so, do a lookup in the Store and send the result to the Client
+% If not, forward the request to our Successor
+% Return nothing
+lookup(Key, Qref, Client, Id, {Pkey, _}, Successor, Store) ->
+  case key:between(Key, Pkey, Id) of
+    true ->
+      % This Key is our responsibility
+      Result = storage:lookup(Key, Store),
+      Client ! {Qref, Result};
+    false ->
+      % This Key is not our responsibility
+      {_, Spid} = Successor,
+      Spid ! {lookup, Key, Qref, Client}
   end.
 
 % Send a probe message to Successor
