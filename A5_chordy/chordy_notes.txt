@@ -84,5 +84,10 @@ Error in process <0.70.0> with exit value:
          {node1,node,3,[{file,"node1.erl"},{line,81}]}]}
 
 Vandinn var að ég var ekki að returna successor úr stabilize/3
+Virðist vera að virka núna. Probe-inn fer í gegnum hækkandi röð af keys.
+ATH engar ring repairs komnar í þetta
 
 ---------------------------------------------------------------------------------------------------
+
+
+
