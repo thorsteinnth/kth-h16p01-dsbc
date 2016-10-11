@@ -142,10 +142,14 @@ testStore2() ->
   timer:sleep(10000),
   FirstNode ! probe,
   timer:sleep(10000),
-  add(key:generate(), value1, FirstNode),
-  add(key:generate(), value2, FirstNode),
-  add(key:generate(), value3, FirstNode),
-  add(key:generate(), value4, FirstNode),
+  Value1Key = key:generate(),
+  Value2Key = key:generate(),
+  Value3Key = key:generate(),
+  Value4Key = key:generate(),
+  add(Value1Key, value1, FirstNode),
+  add(Value2Key, value2, FirstNode),
+  add(Value3Key, value3, FirstNode),
+  add(Value4Key, value4, FirstNode),
   FirstNode ! printstore,
   Node2 ! printstore,
   Node3 ! printstore,
@@ -166,7 +170,12 @@ testStore2() ->
   Node6 ! printstore,
   Node7 ! printstore,
   Node8 ! printstore,
-  timer:sleep(10000).
+  timer:sleep(10000),
+  Lookup1 = lookup(Value1Key, FirstNode),
+  Lookup2 = lookup(Value2Key, FirstNode),
+  Lookup3 = lookup(Value3Key, FirstNode),
+  Lookup4 = lookup(Value4Key, FirstNode),
+  io:format("LOOKUP RESULTS: ~p ~p ~p ~p~n", [Lookup1, Lookup2, Lookup3, Lookup4]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     

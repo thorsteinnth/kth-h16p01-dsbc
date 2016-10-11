@@ -96,6 +96,7 @@ Kominn með ring up and running
 ---------------------------------------------------------------------------------------------------
 
 Adda í store virðist vera að virka
+Búa til nodes, adda values, adda more nodes, gildi dreifast rétt
 
 86> test:testStore2().
 [<0.457.0>] Received my own probe - Created time: 1476225499697593 - Current time: 1476225499697633 - Nodes: [{912868469,
@@ -133,7 +134,47 @@ Adda í store virðist vera að virka
 [<0.464.0>] STORE: []
 ok
 
-gildin eru að fara á rétta staði
+-----
+
+93> test:testStore2().
+[<0.508.0>] Received my own probe - Created time: 1476226449068516 - Current time: 1476226449068529 - Nodes: [{217489552,
+                                                                                                               <0.508.0>},
+                                                                                                              {579315200,
+                                                                                                               <0.509.0>},
+                                                                                                              {946799514,
+                                                                                                               <0.510.0>}]
+[<0.508.0>] STORE: [{93868016,value2},{99422912,value3}]
+[<0.509.0>] STORE: [{479668684,value1},{318713296,value4}]
+[<0.510.0>] STORE: []
+[<0.508.0>] Received my own probe - Created time: 1476226479072934 - Current time: 1476226479072975 - Nodes: [{217489552,
+                                                                                                               <0.508.0>},
+                                                                                                              {339507846,
+                                                                                                               <0.514.0>},
+                                                                                                              {579315200,
+                                                                                                               <0.509.0>},
+                                                                                                              {600784579,
+                                                                                                               <0.513.0>},
+                                                                                                              {755193177,
+                                                                                                               <0.511.0>},
+                                                                                                              {778618308,
+                                                                                                               <0.512.0>},
+                                                                                                              {824062636,
+                                                                                                               <0.515.0>},
+                                                                                                              {946799514,
+                                                                                                               <0.510.0>}]
+[<0.508.0>] STORE: [{93868016,value2},{99422912,value3}]
+[<0.509.0>] STORE: [{479668684,value1}]
+[<0.510.0>] STORE: []
+[<0.511.0>] STORE: []
+[<0.512.0>] STORE: []
+[<0.513.0>] STORE: []
+[<0.514.0>] STORE: [{318713296,value4}]
+[<0.515.0>] STORE: []
+LOOKUP RESULTS: {479668684,value1} {93868016,value2} {99422912,value3} {318713296,
+                                                                        value4}
+ok
+
+gildin eru að fara á rétta staði og ég get lookupað þau aftur
 
 
 
