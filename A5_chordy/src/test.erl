@@ -177,6 +177,56 @@ testStore2() ->
   Lookup4 = lookup(Value4Key, FirstNode),
   io:format("LOOKUP RESULTS: ~p ~p ~p ~p~n", [Lookup1, Lookup2, Lookup3, Lookup4]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%
+% PERFORMANCE TESTS
+
+% Implement a test procedure that adds a number of random key-value pairs into the system and keeps the keys in a list.
+% You should then be able to do a lookup of all the keys and measure the time it takes.
+% The lookup test should be given the name of a node to contact.
+
+% 1 node in ring
+performanceTest1() ->
+  FirstNode = start(node2),
+  timer:sleep(5000),
+  performanceTest1(FirstNode).
+performanceTest1(NodeToContact) ->
+  Keys = keys(1000),
+  add(Keys, NodeToContact),
+  check(Keys, NodeToContact).
+
+% 4 nodes in ring
+performanceTest2() ->
+  FirstNode = start(node2),
+  start(node2, 3, FirstNode),
+  timer:sleep(5000),
+  performanceTest1(FirstNode).
+performanceTest2(NodeToContact) ->
+  Keys = keys(1000),
+  add(Keys, NodeToContact),
+  check(Keys, NodeToContact).
+
+% 1000 nodes in ring
+performanceTest3() ->
+  FirstNode = start(node2),
+  start(node2, 999, FirstNode),
+  timer:sleep(10000),
+  performanceTest1(FirstNode).
+performanceTest3(NodeToContact) ->
+  Keys = keys(1000),
+  add(Keys, NodeToContact),
+  check(Keys, NodeToContact).
+
+% 8 nodes in ring
+performanceTest4() ->
+  FirstNode = start(node2),
+  start(node2, 7, FirstNode),
+  timer:sleep(10000),
+  performanceTest1(FirstNode).
+performanceTest4(NodeToContact) ->
+  Keys = keys(1000),
+  add(Keys, NodeToContact),
+  check(Keys, NodeToContact).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 

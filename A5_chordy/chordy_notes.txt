@@ -176,7 +176,179 @@ ok
 
 gildin eru að fara á rétta staði og ég get lookupað þau aftur
 
+---------------------------------------------------------------------------------------------------
 
+2.6 Performance
+
+If we now have a distributed store that can handle new nodes that are added to the ring we might
+try some performance testing.
+
+You need to be a group with several machine to do this.
+
+Assume that we have eight machines and that we will use four in building the ring and four in testing the performance.
+
+As a first test we can have one node only in the ring and let the four test machines add 1000 elements to the ring
+and then do a lookup of the elements.
+
+TODO
+Does it take longer for one machine to handle 4000 elements rather than
+four machines that do 1000 elements each. What is the limiting factor?
+
+Implement a test procedure that adds a number of random key-value pairs into the system and keeps the keys in a list.
+You should then be able to do a lookup of all the keys and measure the time it takes.
+The lookup test should be given the name of a node to contact.
+
+TODO
+Now what happens if we add another node to the ring, how does the performance change?
+
+TODO
+Does it matter if all test machines access the same node?
+
+TODO
+Add two more nodes to the ring, any changes?
+
+TODO
+How will things change if we have a ten thousand elements?
+
+PERFORMANCE TEST RESULTS
+Er ekki að keyra þetta á mörgum vélum eins og hann vill
+
+performanceTest1
+1 (local) node in ring
+Add 1000 keys and look them up again
+
+2> test:performanceTest().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+3> test:performanceTest().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+4> test:performanceTest().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+5> test:performanceTest().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+6> test:performanceTest().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+7> test:performanceTest().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+8> test:performanceTest().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+9> test:performanceTest().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+10> test:performanceTest().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+11> test:performanceTest().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+
+--------------------
+
+performanceTest2
+4 nodes in ring
+Add 1000 keys and lookup
+
+15> test:performanceTest2().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+16> test:performanceTest2().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+17> test:performanceTest2().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+18> test:performanceTest2().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+19> test:performanceTest2().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+
+No difference
+
+--------------------
+
+performanceTest3
+1000 nodes in ring
+
+21> test:performanceTest3().
+1000 lookup operation in 7010 ms
+198 lookups failed, 0 caused a timeout
+ok
+22> test:performanceTest3().
+1000 lookup operation in 8004 ms
+204 lookups failed, 0 caused a timeout
+ok
+23>
+
+--------------------
+
+performanceTest4
+8 nodes in ring
+
+24> test:performanceTest4().
+1000 lookup operation in 5 ms
+0 lookups failed, 0 caused a timeout
+ok
+25> test:performanceTest4().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+26> test:performanceTest4().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+27> test:performanceTest4().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+28> test:performanceTest4().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+29> test:performanceTest4().
+1000 lookup operation in 5 ms
+0 lookups failed, 0 caused a timeout
+ok
+30> test:performanceTest4().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+31> test:performanceTest4().
+1000 lookup operation in 4 ms
+0 lookups failed, 0 caused a timeout
+ok
+32> test:performanceTest4().
+1000 lookup operation in 4 ms 
+0 lookups failed, 0 caused a timeout
+ok
+33> test:performanceTest4().
+1000 lookup operation in 3 ms
+0 lookups failed, 0 caused a timeout
+ok
+
+TODO Make multiple processes add 1000 elements at the same time, simulate many computers
 
 
 
