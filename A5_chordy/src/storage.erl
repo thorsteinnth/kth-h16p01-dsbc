@@ -31,6 +31,7 @@ lookup(Key, Store) ->
 % Return a tuple {Updated, Rest} where the updated store only contains the key value pairs
 % requested and the rest are found in a list of key-value pairs
 % Will be used when a new node joins the ring and should take over a part of the store
+% Store contains the range (Pkey,Id]
 split(From, To, Store) ->
   % Keys should be a list of numbers
   % Updated will be a list of the entries in Store that fall between From and To
@@ -66,7 +67,8 @@ split(From, To, Store) ->
   {Updated, Rest}.
 
 shouldBeInSplit(Key, From, To) ->
-  ((Key >= From) and (Key =< To)).
+  %((Key >= From) and (Key =< To)).
+  key:between(Key, From, To).
 
 % Add a list of key-value pairs to a store
 % Will be used when a new node joins the ring and should take over a part of the store

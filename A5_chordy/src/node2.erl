@@ -66,8 +66,8 @@ node(Id, Predecessor, Successor, Store) ->
     {notify, New} ->
       % A new node informs us of its existence
       % i.e. suggesting that it might be our predecessor
-      Pred = notify(New, Id, Predecessor),
-      node(Id, Pred, Successor, Store);
+      {Pred, NewStore} = notify(New, Id, Predecessor, Store),
+      node(Id, Pred, Successor, NewStore);
     {request, Peer} ->
       % A predecessor needs to know our predecessor
       request(Peer, Predecessor),
@@ -103,6 +103,11 @@ node(Id, Predecessor, Successor, Store) ->
       % Lookup key in store
       lookup(Key, Qref, Client, Id, Predecessor, Successor, Store),
       node(Id, Predecessor, Successor, Store);
+    {handover, Elements} ->
+      % Received a batch of elements to add to my Store
+      % Message from a node that has accepted us as their predecessor
+      Merged = storage:merge(Store, Elements),
+      node(Id, Predecessor, Successor, Merged);
     stop ->
       ok;
     _ ->
@@ -246,14 +251,15 @@ request(Peer, Predecessor) ->
 % {Nkey, Npid} is the key and pid of the node that thinks it is our predecessor (New)
 % Id is our ID (key)
 % Predecessor is our current predecessor
-% Return the correct predecessor
+% Return {correct predecessor, Store}
 % TODO Do we need a special case to detect that we’re pointing to ourselves?
-notify({Nkey, Npid}, Id, Predecessor) ->
+notify({Nkey, Npid}, Id, Predecessor, Store) ->
   case Predecessor of
     nil ->
       % Our own predecessor is nil
-      % Make the New node our predecessor (i.e. return it)
-      {Nkey, Npid};
+      % Make the New node our predecessor, we are accepting it as our predecessor
+      Keep = handover(Id, Store, Nkey, Npid),
+      {{Nkey, Npid}, Keep};
     {Pkey,  _} ->
       % We already have a predecessor
       % Check if New should be our predecessor instead
@@ -261,15 +267,27 @@ notify({Nkey, Npid}, Id, Predecessor) ->
         true ->
           % New is between current predecessor and me
           % Predecessor - New - Me
-          % New should be our predecessor
-          {Nkey, Npid};
+          % New should be our predecessor, we are accepting it as our predecessor
+          Keep = handover(Id, Store, Nkey, Npid),
+          {{Nkey, Npid}, Keep};
         false ->
           % New is NOT between current predecessor and me
           % New - Predecessor - Me
           % Keep my old predecessor
-          Predecessor
+          {Predecessor, Store}
       end
   end.
+
+% Split our store based on Nkey
+handover(Id, Store, Nkey, Npid) ->
+  % We want to have keys that are from (Nkey, Id]
+  % split(From, To, Store)
+  % (From, To] - from Id, up to and including Nkey, will be in the first tuple list
+  % The rest will be in the second tuple list
+  % NOTE: Reversed to how I would think about it
+  {Rest, Keep} = storage:split(Id, Nkey, Store),
+  Npid ! {handover, Rest},
+  Keep.
 
 printSuccessor(Node) ->
   % Node is of the form {key, pid}
