@@ -30,6 +30,7 @@ init(Id, Peer) ->
   Predecessor = nil,
   % Connect to our successor
   {ok, Successor} = connect(Id, Peer),
+  %printSuccessor(Successor),
   schedule_stabilize(),
   node(Id, Predecessor, Successor).
 
@@ -74,9 +75,11 @@ node(Id, Predecessor, Successor) ->
     {status, Pred} ->
       % Our successor informs us about its predecessor
       Succ = stabilize(Pred, Id, Successor),
+      %io:format("[~p] STABILIZE/3 JUST FINISHED, NEW SUCCESSOR: ~p~n", [self(), Succ]),
       node(Id, Predecessor, Succ);
     stabilize ->
       % Send a request message to our successor.
+      %io:format("[~p] WILL ENTER STABILIZE/1 WITH SUCCESSOR ARG AS: ~p~n", [self(), Successor]),
       stabilize(Successor),
       node(Id, Predecessor, Successor);
     probe ->
@@ -134,19 +137,23 @@ forward_probe(Ref, T, Nodes, Id, Successor) ->
 % Pred: Our successor's current predecessor
 % Id: Our Id (key)
 % Successor: Our current successor, in the form {Key, Pid}
+% Return the new successor
 stabilize(Pred, Id, Successor) ->
   {Skey, Spid} = Successor,
   case Pred of
     nil ->
+      % Our successor has no predecessor
       % Inform our successor of our existence
-      Spid ! {notify, {Id, self()}};
+      Spid ! {notify, {Id, self()}},
+      Successor;
     {Id, _} ->
-      % Pred points back to us, don't do anything
-      ok;
+      % Pred points back to us, we are our successor's predecessor, don't do anything
+      Successor;
     {Skey, _} ->
       % Pred is pointing back to itself (our successor's predecessor is our successor)
       % Inform our successor of our existence
-      Spid ! {notify, {Id, self()}};
+      Spid ! {notify, {Id, self()}},
+      Successor;
     {Xkey, Xpid} ->
       % Pred is pointing to another node
       % Should we slide ourselves between the two nodes or behind the other node (successor's predecessor)
@@ -156,14 +163,19 @@ stabilize(Pred, Id, Successor) ->
           % Me - Pred - Successor
           % Adopt the other node as our successor and run stabilization again
           NewSuccessor = {Xkey, Xpid},
-          stabilize(Pred, Id, NewSuccessor);
+          % TODO Should I send myself a message here or just run stabilize/1?
+          % Don't think it matters ... when we receive (actually, handle) the message from ourselves the
+          % successor should be set to the new successor
+          self() ! stabilize,
+          NewSuccessor;
         false ->
           % The other node is NOT between us and our successor
           % Pred should always be in front of Successor, so
           % we are in between our successor and and the other node
           % Pred - Me - Successor
           % Inform our successor of our existence
-          Spid ! {notify, {Id, self()}}
+          Spid ! {notify, {Id, self()}},
+          Successor
       end
   end.
 
@@ -214,3 +226,7 @@ notify({Nkey, Npid}, Id, Predecessor) ->
           Predecessor
       end
   end.
+
+printSuccessor(Node) ->
+  % Node is of the form {key, pid}
+  io:format("[~p] SUCCESSOR: ~p~n", [self(), Node]).

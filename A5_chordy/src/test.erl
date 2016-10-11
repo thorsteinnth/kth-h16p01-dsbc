@@ -85,9 +85,13 @@ test1() ->
   % Start more nodes
   start(node1, 5, FirstNode),
   % Sleep to let the ring stabilize
-  timer:sleep(10000).
+  timer:sleep(10000),
   % Send a probe around the ring
-  %FirstNode ! probe.
+  FirstNode ! probe,
+  timer:sleep(10000),
+  % Send another probe around the ring
+  FirstNode ! probe.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
