@@ -54,6 +54,8 @@ TODO
 What would happen if we didn’t schedule the stabilize procedure (when a node is started)?
 Would things still work?
 
+---------------------------------------------------------------------------------------------------
+
 111016 0023
 Eitthvað rugl í stabilize
 
@@ -80,3 +82,7 @@ Eitthvað rugl í stabilize
 Error in process <0.70.0> with exit value:
 {badarg,[{node1,stabilize,1,[{file,"node1.erl"},{line,182}]},
          {node1,node,3,[{file,"node1.erl"},{line,81}]}]}
+
+Vandinn var að ég var ekki að returna successor úr stabilize/3
+
+---------------------------------------------------------------------------------------------------
