@@ -228,6 +228,36 @@ performanceTest4(NodeToContact) ->
   check(Keys, NodeToContact).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+performanceTestBuildRing(NumberOfNodes) ->
+  FirstNode = start(node2),
+  start(node2, NumberOfNodes-1, FirstNode),
+  FirstNode.
+
+performanceTestAddAndLookup(NumberOfElements, NodeToContact) ->
+  Keys = keys(NumberOfElements),
+  add(Keys, NodeToContact),
+  check(Keys, NodeToContact).
+
+performanceTest(NumberOfNodesInRing, NumberOfTestMachines, NumberOfElements) ->
+  Node = performanceTestBuildRing(NumberOfNodesInRing),
+  io:format("Sleeping (to stabilize ring)~n", []),
+  timer:sleep(5000),
+  io:format("Running performance test - N: ~p - Testmachines: ~p - Elements: ~p~n",
+    [NumberOfNodesInRing, NumberOfTestMachines, NumberOfElements]),
+  startTestMachineWorkers(NumberOfTestMachines, NumberOfElements, Node).
+
+startTestMachineWorkers(0, _, _) ->
+  ok;
+startTestMachineWorkers(N, NumberOfElements, Node) ->
+  io:format("Starting test machine worker ~p~n", [N]),
+  spawn(fun() ->
+    test:performanceTestAddAndLookup(NumberOfElements, Node)
+        end
+  ),
+  startTestMachineWorkers(N-1, NumberOfElements, Node).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 
 
