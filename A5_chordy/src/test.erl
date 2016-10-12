@@ -263,18 +263,28 @@ startTestMachineWorkers(N, NumberOfElements, Node) ->
 testNode3() ->
   % Start first node
   FirstNode = start(node3),
-  % Start more nodes
-  start(node3, 5, FirstNode),
-  % Start more nodes (do it like this to get a references to them)
+  Node2 = start(node3, FirstNode),
+  Node3 = start(node3, FirstNode),
+  Node4 = start(node3, FirstNode),
+  Node5 = start(node3, FirstNode),
+  Node6 = start(node3, FirstNode),
   Node7 = start(node3, FirstNode),
   Node8 = start(node3, FirstNode),
   % Sleep to let the ring stabilize
   timer:sleep(10000),
   % Send a probe around the ring
   FirstNode ! probe,
+  timer:sleep(5000),
+  % Kill nodes
+  io:format("Stopping node 1 - PID: ~p~n", [FirstNode]),
+  FirstNode ! stop,
+  io:format("Stopping node 3 - PID: ~p~n", [Node3]),
+  Node3 ! stop,
+  io:format("Stopping node 7 - PID: ~p~n", [Node7]),
+  Node7 ! stop,
   timer:sleep(10000),
   % Send another probe around the ring
-  FirstNode ! probe.
+  Node8 ! probe.
 
 
 

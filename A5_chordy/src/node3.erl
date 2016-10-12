@@ -115,6 +115,9 @@ node(Id, Predecessor, Successor, Store, Next) ->
       % Message from a node that has accepted us as their predecessor
       Merged = storage:merge(Store, Elements),
       node(Id, Predecessor, Successor, Merged, Next);
+    {'DOWN', Ref, process, _, _} ->
+      {Pred, Succ, Nxt} = down(Ref, Predecessor, Successor, Next),
+      node(Id, Pred, Succ, Store, Nxt);
     printstore ->
       % Added this myself for debugging purposes
       storage:printStore(Store),
@@ -124,6 +127,23 @@ node(Id, Predecessor, Successor, Store, Next) ->
     UnknownMessage ->
       io:format("Unknown message type: ~p~n", [UnknownMessage])
   end.
+
+% Handle DOWN messages
+% down(Ref, Predecessor, Successor, Next)
+% Return {New predecessor, New successor, Next (successor's successor)}
+down(Ref, {_, Ref, _}, Successor, Next) ->
+  % Our Predecessor died
+  % Nothing to do, just set it as nil, will get another predecessor eventually
+  % (don't have a safety pointer to my predecessor's predecessor)
+  {nil, Successor, Next};
+down(Ref, Predecessor, {_, Ref, _}, {Nkey, Npid}) ->
+  % Our successor died
+  % Adopt our Next node as our successor
+  % Monitor the new successor
+  % Run stabilization procedure
+  Nref = monitor(Npid),
+  self() ! stabilize,
+  {Predecessor, {Nkey, Nref, Npid}, nil}.
 
 % Add a new key value to the store
 % Must determine if our node is the node that should take care of the key.

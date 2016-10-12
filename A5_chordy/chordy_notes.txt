@@ -824,6 +824,58 @@ Hvar breytast successor og predecessorarnir mínir?
 4 staðir þar sem ég þarf að monitora - DONE
 2 staðir þar sem ég þarf að de-monitora - DONE
 
+----
 
+Node3 tests
 
+27> test:testNode3().
+[<0.235.0>] Received my own probe - Created time: 1476291059352762 - Current time: 1476291059352792 - Nodes: [{134660158,
+                                                                                                               <0.235.0>},
+                                                                                                              {165857176,
+                                                                                                               <0.236.0>},
+                                                                                                              {236005157,
+                                                                                                               <0.237.0>},
+                                                                                                              {271543407,
+                                                                                                               <0.241.0>},
+                                                                                                              {333638099,
+                                                                                                               <0.240.0>},
+                                                                                                              {453243160,
+                                                                                                               <0.242.0>},
+                                                                                                              {772208333,
+                                                                                                               <0.239.0>},
+                                                                                                              {920282593,
+                                                                                                               <0.238.0>}]
+Stopping node 1 - PID: <0.235.0>
+Stopping node 3 - PID: <0.237.0>
+Stopping node 7 - PID: <0.241.0>
+[<0.242.0>] Received my own probe - Created time: 1476291074354916 - Current time: 1476291074354997 - Nodes: [{453243160,
+                                                                                                               <0.242.0>},
+                                                                                                              {772208333,
+                                                                                                               <0.239.0>},
+                                                                                                              {920282593,
+                                                                                                               <0.238.0>},
+                                                                                                              {165857176,
+                                                                                                               <0.236.0>},
+                                                                                                              {333638099,
+                                                                                                               <0.240.0>}]
+probe
 
+WORKS - ring recovers after killing some members of it
+
+----
+
+You’re done you have a fault tolerant distributed storage...... well almost,
+if a node dies it will bring with it a part of the storage.
+If this is ok we could stop here, if not we have to do some more work.
+
+TODO
+Another thing to ponder is what will happen if a node is falsely detected of being dead?
+What will happen if a node has only been temporally unavailable
+(and in the worst case, it might think that the rest of the network is gone).
+How much would you gamble in trusting the ’DOWN’ message?
+
+----------------------------------------------------------------------------------------------------------------------
+
+4 Second option task for extra bonus: Replication
+
+Les þetta bara, ekki að fara að gera þetta líka, kominn með bónusinn
