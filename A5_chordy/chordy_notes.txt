@@ -803,6 +803,26 @@ ok
 10000 lookup operation in 585 ms
 0 lookups failed, 0 caused a timeout
 
+----------------------------------------------------------------------------------------------------------------------
+
+3 First optional task for extra bonus: Handling failures
+
+To handle failures we need to detect if a node has failed.
+Both the successor and the predecessor need to detect this and we will use the Erlang built-in procedure
+to monitor the health of a node.
+Start a new module node3 and copy what we have from node2.
+
+Keep track of successor's successor (Next).
+NOTE: Only one safety pointer - can't handle two nodes in a row crashing
+
+Monitora successor og predecessor
+Vista þá sem {Key, Ref, Pid} tuples where the Ref is a reference produced by the monitor procedure.
+
+Þegar ég sendi messages á milli nóða sendi ég ekki Refið.
+When a new node is adopted as successor or predecessor we need to demonitor the old node and monitor the new
+Hvar breytast successor og predecessorarnir mínir?
+4 staðir þar sem ég þarf að monitora - DONE
+2 staðir þar sem ég þarf að de-monitora - DONE
 
 
 

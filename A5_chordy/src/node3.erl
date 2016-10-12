@@ -35,11 +35,13 @@ init(Id, Peer) ->
   % We don't know our successor's successor yet (Next), just putting in as nil
   node(Id, Predecessor, Successor, storage:create(), nil).
 
+% Return {ok, Successor} where successor is {Key, Ref, Pid} where the Ref is a reference produced by the monitor.
 connect(Id, nil) ->
   % We are the first node in the ring
   % We are in fact connecting to ourselves
   % We are our own successor
-  {ok, {Id, self()}};
+  % No need to monitor myself, just put nil as the monitor reference (NOTE: it is OK to drop(nil))
+  {ok, {Id, nil, self()}};
 connect(Id, Peer) ->
   % Id is our own ID
   % Peer is the PID of the node in the ring we are connecting to
@@ -52,13 +54,16 @@ connect(Id, Peer) ->
     {Qref, Skey} ->
       % We have received the key for Peer
       % We have our new successor
-      {ok, {Skey, Peer}}
+      % Monitor the new successor
+      MonitorReference = monitor(Peer),
+      {ok, {Skey, MonitorReference, Peer}}
   after ?Timeout ->
     io:format("Time out: no response~n",[])
   end.
 
-% Predecessor and successor are of the form {Key, Pid}
+% Predecessor and successor are of the form {Key, ref, Pid}
 % Next is our successor's successor (safety pointer for fault tolerance)
+% Predecessor and Successor are {Key, Ref, Pid} tuples where the Ref is a reference produced by the monitor procedure.
 node(Id, Predecessor, Successor, Store, Next) ->
   receive
     {key, Qref, Peer} ->
@@ -116,8 +121,8 @@ node(Id, Predecessor, Successor, Store, Next) ->
       node(Id, Predecessor, Successor, Store, Next);
     stop ->
       ok;
-    _ ->
-      io:format("Unknown message type")
+    UnknownMessage ->
+      io:format("Unknown message type: ~p~n", [UnknownMessage])
   end.
 
 % Add a new key value to the store
@@ -125,7 +130,7 @@ node(Id, Predecessor, Successor, Store, Next) ->
 % Will take care of all keys from (not including) ID of predecessor to (and including) ID of myself.
 % If we are not responsible for this key-value we send an add message to our successor.
 % Return new Store
-add(Key, Value, Qref, Client, Id, {Pkey, _}, {_, Spid}, Store) ->
+add(Key, Value, Qref, Client, Id, {Pkey, _, _}, {_, _, Spid}, Store) ->
   % Can use the key:between function
   case key:between(Key, Pkey, Id) of
     true ->
@@ -144,7 +149,7 @@ add(Key, Value, Qref, Client, Id, {Pkey, _}, {_, Spid}, Store) ->
 % If so, do a lookup in the Store and send the result to the Client
 % If not, forward the request to our Successor
 % Return nothing
-lookup(Key, Qref, Client, Id, {Pkey, _}, Successor, Store) ->
+lookup(Key, Qref, Client, Id, {Pkey, _, _}, Successor, Store) ->
   case key:between(Key, Pkey, Id) of
     true ->
       % This Key is our responsibility
@@ -152,7 +157,7 @@ lookup(Key, Qref, Client, Id, {Pkey, _}, Successor, Store) ->
       Client ! {Qref, Result};
     false ->
       % This Key is not our responsibility
-      {_, Spid} = Successor,
+      {_, _, Spid} = Successor,
       Spid ! {lookup, Key, Qref, Client}
   end.
 
@@ -163,7 +168,7 @@ lookup(Key, Qref, Client, Id, {Pkey, _}, Successor, Store) ->
 % Time is a timestamp created by the node that created the probe
 % (does not mean anything on other nodes (it is local time))
 create_probe(Id, Successor) ->
-  {_, Spid} = Successor,
+  {_, _, Spid} = Successor,
   Spid ! {probe, Id, [{Id, self()}], erlang:system_time(micro_seconds)}.
 
 % Handle receiving of our own probe
@@ -182,7 +187,7 @@ remove_probe(T, Nodes) ->
 % Id is our own ID (key)
 % Successor is our successor, on the form {key, PID}
 forward_probe(Ref, T, Nodes, Id, Successor) ->
-  {_, Spid} = Successor,
+  {_, _, Spid} = Successor,
   Spid ! {probe, Ref, lists:append(Nodes, [{Id, self()}]), T}.
 
 % Node sends a {request, self()} message to its successor and then expects a {status, Pred} in return.
@@ -192,10 +197,10 @@ forward_probe(Ref, T, Nodes, Id, Successor) ->
 % Pred: Our successor's current predecessor
 % Nx: Our successor's current successor
 % Id: Our Id (key)
-% Successor: Our current successor, in the form {Key, Pid}
+% Successor: Our current successor, in the form {Key, Ref, Pid}
 % Return {new successor, new successor's sucessor} ({Succ, Nxt})
 stabilize(Pred, Nx, Id, Successor) ->
-  {Skey, Spid} = Successor,
+  {Skey, Sref, Spid} = Successor,
   case Pred of
     nil ->
       % Our successor has no predecessor
@@ -222,8 +227,11 @@ stabilize(Pred, Nx, Id, Successor) ->
           % Me - Pred - Successor
           % Adopt the other node as our successor and run stabilization again
           % Our old successor should be Pred's successor
-          NewSuccessor = {Xkey, Xpid},
-          NewNext = Successor,
+          % We have a new successor, let's monitor him and de-monitor the old one
+          drop(Sref),
+          MonitorRef = monitor(Xpid),
+          NewSuccessor = {Xkey, MonitorRef, Xpid},
+          NewNext = {Skey, Spid},
           % TODO Should I send myself a message here or just run stabilize/1?
           % Don't think it matters ... when we receive (actually, handle) the message from ourselves the
           % successor should be set to the new successor
@@ -247,17 +255,18 @@ schedule_stabilize() ->
   timer:send_interval(?Stabilize, self(), stabilize).
 
 % Send a request message to a PID.
-stabilize({_, Spid}) ->
+stabilize({_, _, Spid}) ->
   Spid ! {request, self()}.
 
 % Request message received from Peer
 % Inform Peer of our current predecessor and our successor
 request(Peer, Predecessor, Successor) ->
+  {Skey, _, Spid} = Successor,
   case Predecessor of
     nil ->
-      Peer ! {status, nil, Successor};
-    {Pkey, Ppid} ->
-      Peer ! {status, {Pkey, Ppid}, Successor}
+      Peer ! {status, nil, {Skey, Spid}};
+    {Pkey, _, Ppid} ->
+      Peer ! {status, {Pkey, Ppid}, {Skey, Spid}}
   end.
 
 % A node has suggested that it might be our predecessor
@@ -265,15 +274,18 @@ request(Peer, Predecessor, Successor) ->
 % Id is our ID (key)
 % Predecessor is our current predecessor
 % Return {correct predecessor, Store}
+% Predecessor is of the form {key, ref, pid}
 % TODO Do we need a special case to detect that we’re pointing to ourselves?
 notify({Nkey, Npid}, Id, Predecessor, Store) ->
   case Predecessor of
     nil ->
       % Our own predecessor is nil
       % Make the New node our predecessor, we are accepting it as our predecessor
+      % We have a new predecessor, need to monitor it
+      MonitorRef = monitor(Npid),
       Keep = handover(Id, Store, Nkey, Npid),
-      {{Nkey, Npid}, Keep};
-    {Pkey,  _} ->
+      {{Nkey, MonitorRef, Npid}, Keep};
+    {Pkey, Pref, _} ->
       % We already have a predecessor
       % Check if New should be our predecessor instead
       case key:between(Nkey, Pkey, Id) of
@@ -281,8 +293,11 @@ notify({Nkey, Npid}, Id, Predecessor, Store) ->
           % New is between current predecessor and me
           % Predecessor - New - Me
           % New should be our predecessor, we are accepting it as our predecessor
+          % We have a new predecessor, should stop monitoring the old one and start monitoring the new one
+          drop(Pref),
+          MonitorRef = monitor(Npid),
           Keep = handover(Id, Store, Nkey, Npid),
-          {{Nkey, Npid}, Keep};
+          {{Nkey, MonitorRef, Npid}, Keep};
         false ->
           % New is NOT between current predecessor and me
           % New - Predecessor - Me
@@ -301,6 +316,17 @@ handover(Id, Store, Nkey, Npid) ->
   {Rest, Keep} = storage:split(Id, Nkey, Store),
   Npid ! {handover, Rest},
   Keep.
+
+monitor(Pid) ->
+  % Monitor returns a unique reference that can be used to determine which 'DOWN' message
+  % belongs to which process
+  erlang:monitor(process, Pid).
+
+% NOTE: Pid is the monitor reference, NOT the PID of the process
+drop(nil) ->
+  ok;
+drop(Pid) ->
+  erlang:demonitor(Pid, [flush]).
 
 printSuccessor(Node) ->
   % Node is of the form {key, pid}
