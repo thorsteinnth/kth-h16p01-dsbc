@@ -79,6 +79,8 @@ check([Key|Keys], P, Failed, Timeout) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TESTS ADDED BY ME
 
+% NODE1 - A SIMPLE RING
+
 test1() ->
   % Start first node
   FirstNode = start(node1),
@@ -107,6 +109,8 @@ test2() ->
   timer:sleep(10000),
   % Send another probe around the ring
   FirstNode ! probe.
+
+% NODE2 - STORAGE
 
 testStore1() ->
   FirstNode = start(node2),
@@ -258,7 +262,8 @@ startTestMachineWorkers(N, NumberOfElements, Node) ->
   startTestMachineWorkers(N-1, NumberOfElements, Node).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% NODE3
+
+% NODE3 - NODE FAILURE TOLERANCE
 
 testNode3() ->
   % Start first node
