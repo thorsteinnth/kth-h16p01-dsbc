@@ -879,3 +879,112 @@ How much would you gamble in trusting the ’DOWN’ message?
 4 Second option task for extra bonus: Replication
 
 Les þetta bara, ekki að fara að gera þetta líka, kominn með bónusinn
+Hunsa líka spurningarnar í þessum kafla í skýrslunni held ég
+
+Replicate data to keep it if a node dies
+
+Let's only handle failure of one node (one replica)
+Replicate the store to the successor
+
+When we add an key-value element to our own store we also forward it to our successor
+as a {replicate, Key, Value} message.
+Each node will thus have a second store called the Replica where it can keep a duplicate of its predecessors store.
+When a new node joins the ring it will as before takeover part of the store but also part of the replica.
+If a node dies it’s successor is of course responsible for the store held by the node.
+This mean that the Replica should be merged with its own Store.
+
+TODO
+What does it mean that a element has been added to the store.
+Can we send a confirmation to the client and then replicate the element, what if we fail?
+
+If we want to handle failures we should make sure that a confirmation only is sent when
+an element has been properly added and replicated.
+TODO
+This should not be too difficult to implement, who should send the confirmation?
+
+A client that does not receive a confirmation could of course choose to re-send the message.
+TODO
+What happens if the element was added the first time but that the confirmation message was lost?
+TODO
+Will we handle duplicates properly?
+
+TODO
+Another problem has to do with a joining node in combination with adding of a new value.
+You have to think about this twice before realizing that we have a problem. What would a solution look like?
+
+TODO
+Are there more devils?
+Will we have a implementation with no obvious faults or an implantation with obviously no faults?
+
+----------------------------------------------------------------------------------------------------------------------
+
+5 Carrying on
+
+Routing
+Routing is one thing that we have left out completely.
+If we only have twenty nodes it is less of a problem but if we have hundred nodes it does become important.
+If network latency is high (think global Internet distances) then we need to do something.
+
+TODO
+Should we even try to take network distances into account and route to nodes that are network wise close to us
+(remember that the ring is an over lay and does not say anything about network distance).
+
+
+Replication
+
+TODO
+Is one replica enough or should we have two or three replicas? On what does this depend?
+It is of course related to how reliable nodes are and what reliability we need to provide,
+TODO
+is it also dependent on the number of nodes in the ring?
+TODO
+Can we use the replicas for read operations and thus make use of the redundancy.
+TODO
+How are replicas found and can we distribute them in the ring to avoid hot-spots?
+
+Mutable objects
+As long as we only have one copy of an object things are simple,
+but what if we want to update objects and some replicas are not updated.
+TODO
+Do we have to use a two-phase-commit protocol to update all replicas in a consistent way?
+TODO
+Could we have a trade off between the expense of read and write operations?
+TODO
+How relaxed can we be and how does this relate to a shopping cart?
+
+----------------------------------------------------------------------------------------------------------------------
+
+6 Conclusions
+
+If you have followed this tutorial implementation you should have a better understanding of
+how distributed hash tables work and how they are implemented.
+As you have seen its not that hard to maintain a ring structure even in the face of failures.
+A distributed store also seams easy to implement and replication could probably be solved.
+Consistency is a problem, can we guarantee that added values never are lost (given a maximum number of failed nodes).
+When things get complicate to implement the performance might suffer.
+
+TODO
+What is the advantage of the distributed store, is it performance or fault tolerance?
+What should we optimize if we have to choose between them.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
