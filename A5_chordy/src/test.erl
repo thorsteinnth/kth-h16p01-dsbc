@@ -278,15 +278,15 @@ testNode3() ->
   % Kill nodes
   io:format("Stopping node 1 - PID: ~p~n", [FirstNode]),
   FirstNode ! stop,
+  timer:sleep(2000),  % Need timer here so we don't kill two in a row, has to recover
   io:format("Stopping node 3 - PID: ~p~n", [Node3]),
   Node3 ! stop,
+  timer:sleep(2000),  % Need timer here so we don't kill two in a row, has to recover
   io:format("Stopping node 7 - PID: ~p~n", [Node7]),
   Node7 ! stop,
   timer:sleep(10000),
   % Send another probe around the ring
   Node8 ! probe.
-
-
 
 
 
