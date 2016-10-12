@@ -81,7 +81,7 @@ check([Key|Keys], P, Failed, Timeout) ->
 
 % NODE1 - A SIMPLE RING
 
-test1() ->
+testNode1() ->
   % Start first node
   FirstNode = start(node1),
   % Start more nodes
@@ -91,23 +91,7 @@ test1() ->
   % Send a probe around the ring
   FirstNode ! probe,
   timer:sleep(10000),
-  % Send another probe around the ring
-  FirstNode ! probe.
-
-test2() ->
-  % Start first node
-  FirstNode = start(node1),
-  % Start more nodes
-  start(node1, 5, FirstNode),
-  % Start more nodes (do it like this to get a references to them)
-  Node7 = start(node1, FirstNode),
-  Node8 = start(node1, FirstNode),
-  % Sleep to let the ring stabilize
-  timer:sleep(10000),
-  % Send a probe around the ring
-  FirstNode ! probe,
-  timer:sleep(10000),
-  % Send another probe around the ring
+  % Send another probe around the ring for good measure
   FirstNode ! probe.
 
 % NODE2 - STORAGE
