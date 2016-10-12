@@ -13,7 +13,7 @@
 -define(Timeout, 10000).
 
 %% API
--export([node/4, start/1, start/2]).
+-export([node/5, start/1, start/2]).
 
 % First implementation that only handles a growing ring.
 
@@ -32,7 +32,8 @@ init(Id, Peer) ->
   {ok, Successor} = connect(Id, Peer),
   %printSuccessor(Successor),
   schedule_stabilize(),
-  node(Id, Predecessor, Successor, storage:create()).
+  % We don't know our successor's successor yet (Next), just putting in as nil
+  node(Id, Predecessor, Successor, storage:create(), nil).
 
 connect(Id, nil) ->
   % We are the first node in the ring
@@ -57,61 +58,62 @@ connect(Id, Peer) ->
   end.
 
 % Predecessor and successor are of the form {Key, Pid}
-node(Id, Predecessor, Successor, Store) ->
+% Next is our successor's successor (safety pointer for fault tolerance)
+node(Id, Predecessor, Successor, Store, Next) ->
   receive
     {key, Qref, Peer} ->
       % A peer needs to know our key
       Peer ! {Qref, Id},
-      node(Id, Predecessor, Successor, Store);
+      node(Id, Predecessor, Successor, Store, Next);
     {notify, New} ->
       % A new node informs us of its existence
       % i.e. suggesting that it might be our predecessor
       {Pred, NewStore} = notify(New, Id, Predecessor, Store),
-      node(Id, Pred, Successor, NewStore);
+      node(Id, Pred, Successor, NewStore, Next);
     {request, Peer} ->
-      % A predecessor needs to know our predecessor
-      request(Peer, Predecessor),
-      node(Id, Predecessor, Successor, Store);
-    {status, Pred} ->
-      % Our successor informs us about its predecessor
-      Succ = stabilize(Pred, Id, Successor),
+      % A predecessor needs to know our predecessor, and our successor
+      request(Peer, Predecessor, Successor),
+      node(Id, Predecessor, Successor, Store, Next);
+    {status, Pred, Nx} ->
+      % Our successor informs us about its predecessor, and its successor
+      {Succ, Nxt} = stabilize(Pred, Nx, Id, Successor),
       %io:format("[~p] STABILIZE/3 JUST FINISHED, NEW SUCCESSOR: ~p~n", [self(), Succ]),
-      node(Id, Predecessor, Succ, Store);
+      node(Id, Predecessor, Succ, Store, Nxt);
     stabilize ->
       % Send a request message to our successor.
       %io:format("[~p] WILL ENTER STABILIZE/1 WITH SUCCESSOR ARG AS: ~p~n", [self(), Successor]),
       stabilize(Successor),
-      node(Id, Predecessor, Successor, Store);
+      node(Id, Predecessor, Successor, Store, Next);
     probe ->
       % We should send a probe
       create_probe(Id, Successor),
-      node(Id, Predecessor, Successor, Store);
+      node(Id, Predecessor, Successor, Store, Next);
     {probe, Id, Nodes, T} ->
       % We just received our own probe, let's remove it (and log it)
       remove_probe(T, Nodes),
-      node(Id, Predecessor, Successor, Store);
+      node(Id, Predecessor, Successor, Store, Next);
     {probe, Ref, Nodes, T} ->
       % We just received a prove from another node, let's forward it to our successor
       % (and add ourselves to the Nodes list)
       forward_probe(Ref, T, Nodes, Id, Successor),
-      node(Id, Predecessor, Successor, Store);
+      node(Id, Predecessor, Successor, Store, Next);
     {add, Key, Value, Qref, Client} ->
       % Add key and value to store
       Added = add(Key, Value, Qref, Client, Id, Predecessor, Successor, Store),
-      node(Id, Predecessor, Successor, Added);
+      node(Id, Predecessor, Successor, Added, Next);
     {lookup, Key, Qref, Client} ->
       % Lookup key in store
       lookup(Key, Qref, Client, Id, Predecessor, Successor, Store),
-      node(Id, Predecessor, Successor, Store);
+      node(Id, Predecessor, Successor, Store, Next);
     {handover, Elements} ->
       % Received a batch of elements to add to my Store
       % Message from a node that has accepted us as their predecessor
       Merged = storage:merge(Store, Elements),
-      node(Id, Predecessor, Successor, Merged);
+      node(Id, Predecessor, Successor, Merged, Next);
     printstore ->
       % Added this myself for debugging purposes
       storage:printStore(Store),
-      node(Id, Predecessor, Successor, Store);
+      node(Id, Predecessor, Successor, Store, Next);
     stop ->
       ok;
     _ ->
@@ -188,25 +190,29 @@ forward_probe(Ref, T, Nodes, Id, Successor) ->
 % Ring is either stable or the successor has to be notified about our existence through
 % a {notify, {Id, self()}} message
 % Pred: Our successor's current predecessor
+% Nx: Our successor's current successor
 % Id: Our Id (key)
 % Successor: Our current successor, in the form {Key, Pid}
-% Return the new successor
-stabilize(Pred, Id, Successor) ->
+% Return {new successor, new successor's sucessor} ({Succ, Nxt})
+stabilize(Pred, Nx, Id, Successor) ->
   {Skey, Spid} = Successor,
   case Pred of
     nil ->
       % Our successor has no predecessor
       % Inform our successor of our existence
+      % Our successor does not change - adopt successors's successor as our Next node (Nx)
       Spid ! {notify, {Id, self()}},
-      Successor;
+      {Successor, Nx};
     {Id, _} ->
       % Pred points back to us, we are our successor's predecessor, don't do anything
-      Successor;
+      % Our successor does not change - adopt successors's successor as our Next node (Nx)
+      {Successor, Nx};
     {Skey, _} ->
       % Pred is pointing back to itself (our successor's predecessor is our successor)
       % Inform our successor of our existence
+      % Our successor does not change - adopt successors's successor as our Next node (Nx)
       Spid ! {notify, {Id, self()}},
-      Successor;
+      {Successor, Nx};
     {Xkey, Xpid} ->
       % Pred is pointing to another node
       % Should we slide ourselves between the two nodes or behind the other node (successor's predecessor)
@@ -215,20 +221,23 @@ stabilize(Pred, Id, Successor) ->
           % The other node is between us and our successor
           % Me - Pred - Successor
           % Adopt the other node as our successor and run stabilization again
+          % Our old successor should be Pred's successor
           NewSuccessor = {Xkey, Xpid},
+          NewNext = Successor,
           % TODO Should I send myself a message here or just run stabilize/1?
           % Don't think it matters ... when we receive (actually, handle) the message from ourselves the
           % successor should be set to the new successor
           self() ! stabilize,
-          NewSuccessor;
+          {NewSuccessor, NewNext};
         false ->
           % The other node is NOT between us and our successor
           % Pred should always be in front of Successor, so
           % we are in between our successor and and the other node
           % Pred - Me - Successor
           % Inform our successor of our existence
+          % Our successor does not change - adopt successors's successor as our Next node (Nx)
           Spid ! {notify, {Id, self()}},
-          Successor
+          {Successor, Nx}
       end
   end.
 
@@ -242,13 +251,13 @@ stabilize({_, Spid}) ->
   Spid ! {request, self()}.
 
 % Request message received from Peer
-% Inform Peer of our current predecessor
-request(Peer, Predecessor) ->
+% Inform Peer of our current predecessor and our successor
+request(Peer, Predecessor, Successor) ->
   case Predecessor of
     nil ->
-      Peer ! {status, nil};
+      Peer ! {status, nil, Successor};
     {Pkey, Ppid} ->
-      Peer ! {status, {Pkey, Ppid}}
+      Peer ! {status, {Pkey, Ppid}, Successor}
   end.
 
 % A node has suggested that it might be our predecessor
