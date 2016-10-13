@@ -30,27 +30,27 @@ Engin "names" á nodes, bara random numbers sem við vonum að séu unique.
 human readable names on object but let’s keep things simple."
 
 Key module:
-TODO
+TODO - DONE
 Remember that the we’re dealing with a ring so it could be that From is larger than To.
 What does that mean and how do you handle it?
 
-TODO
+TODO - DONE
 If you study the Chord paper you will find that they explain things slightly different.
 We use our key:between/3 function that allows the key Xkey to be equal to Skey,
 not strictly according to the paper.
 Does this matter? What does it mean that Xkey is equal to Skey, will it ever happen?
 
-TODO
+TODO - DONE
 What are the pros and cons of a more frequent stabilizing procedure?
 What is delayed if we don’t do stabilizing that often?
 
-TODO
+TODO - DONE
 notify/3
 Do we need a special case to detect that we’re pointing to ourselves?
 Do we have to inform the new node about our decision?
 How will it know if we have discarded its friendly proposal?
 
-TODO
+TODO - DONE
 What would happen if we didn’t schedule the stabilize procedure (when a node is started)?
 Would things still work?
 
@@ -187,7 +187,7 @@ You need to be a group with several machine to do this.
 
 Assume that we have eight machines and that we will use four in building the ring and four in testing the performance.
 
-TODO
+TODO - DONE
 As a first test we can have one node only in the ring and let the four test machines add 1000 elements to the ring
 and then do a lookup of the elements.
 Does it take longer for one machine to handle 4000 elements rather than
@@ -197,16 +197,16 @@ Implement a test procedure that adds a number of random key-value pairs into the
 You should then be able to do a lookup of all the keys and measure the time it takes.
 The lookup test should be given the name of a node to contact.
 
-TODO
+TODO - DONE
 Now what happens if we add another node to the ring, how does the performance change?
 
-TODO
+TODO - DONE
 Does it matter if all test machines access the same node?
 
-TODO
+TODO - DONE
 Add two more nodes to the ring, any changes?
 
-TODO
+TODO - DONE
 How will things change if we have a ten thousand elements?
 
 PERFORMANCE TEST RESULTS
@@ -533,7 +533,7 @@ ok
 4000 lookup operation in 25 ms
 0 lookups failed, 0 caused a timeout
 
-TODO
+TODO - DONE
 Does it take longer for one machine to handle 4000 elements rather than four machines that do 1000 elements each.
 What is the limiting factor?
 
@@ -868,7 +868,7 @@ You’re done you have a fault tolerant distributed storage...... well almost,
 if a node dies it will bring with it a part of the storage.
 If this is ok we could stop here, if not we have to do some more work.
 
-TODO
+TODO - DONE
 Another thing to ponder is what will happen if a node is falsely detected of being dead?
 What will happen if a node has only been temporally unavailable
 (and in the worst case, it might think that the rest of the network is gone).
@@ -876,9 +876,14 @@ How much would you gamble in trusting the ’DOWN’ message?
 
 ----------------------------------------------------------------------------------------------------------------------
 
+Skýrslan er orðin 10 bls. Ég svara ekki fleiri spurningum fjandinn hafi það.
+
+----------------------------------------------------------------------------------------------------------------------
+
 4 Second option task for extra bonus: Replication
 
 Les þetta bara, ekki að fara að gera þetta líka, kominn með bónusinn
+
 Hunsa líka spurningarnar í þessum kafla í skýrslunni held ég
 
 Replicate data to keep it if a node dies
@@ -920,6 +925,8 @@ Will we have a implementation with no obvious faults or an implantation with obv
 
 5 Carrying on
 
+Hunsa spurningarnar í þessum kafla í skýrslunni
+
 Routing
 Routing is one thing that we have left out completely.
 If we only have twenty nodes it is less of a problem but if we have hundred nodes it does become important.
@@ -928,7 +935,6 @@ If network latency is high (think global Internet distances) then we need to do 
 TODO
 Should we even try to take network distances into account and route to nodes that are network wise close to us
 (remember that the ring is an over lay and does not say anything about network distance).
-
 
 Replication
 
@@ -963,7 +969,7 @@ A distributed store also seams easy to implement and replication could probably 
 Consistency is a problem, can we guarantee that added values never are lost (given a maximum number of failed nodes).
 When things get complicate to implement the performance might suffer.
 
-TODO
+TODO - DONE
 What is the advantage of the distributed store, is it performance or fault tolerance?
 What should we optimize if we have to choose between them.
 
